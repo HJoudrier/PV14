@@ -452,11 +452,43 @@
 
           <!-- Indicateurs d'état de planification -->
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span id="planning-grid-contract-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-              🌐 Limite Réseau : 160 kW
-            </span>
-            <span id="planning-deficit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              ✓ Charge 100% couverte
+            <!-- Sélecteur SoC initial -->
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">SoC initial</span>
+              <div class="flex items-center rounded-lg border border-indigo-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+                <button
+                  type="button"
+                  class="btn-step px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                  data-target="param-bess-initial-soc"
+                  data-step="-5"
+                  title="Diminuer de 5 %"
+                >
+                  &minus;
+                </button>
+                <input
+                  type="number"
+                  id="param-bess-initial-soc"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value="45"
+                  class="w-14 text-center font-mono font-bold text-sm text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                />
+                <button
+                  type="button"
+                  class="btn-step px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                  data-target="param-bess-initial-soc"
+                  data-step="5"
+                  title="Augmenter de 5 %"
+                >
+                  +
+                </button>
+              </div>
+              <span class="text-xs font-bold font-mono text-indigo-700 select-none">%</span>
+            </div>
+
+            <span id="planning-deficit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden>
+              ⚠️ Manque : -- kWh non couverts
             </span>
             <span id="planning-soc-end-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
               🔋 SoC fin : --%

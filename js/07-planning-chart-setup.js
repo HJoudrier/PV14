@@ -48,16 +48,13 @@ function renderPlanningCharts() {
   const hoursExt = [...planData.hours, '24:00'];
 
   // Update Section Badges
-  setText('planning-grid-contract-badge', `🌐 Limite Réseau : ${state.params.gridContractKw} kW`);
-
   const defBadge = document.getElementById('planning-deficit-badge');
   if (defBadge) {
     if (planData.totalDeficitKwh > 0.1) {
-      defBadge.className = 'px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200';
+      defBadge.hidden = false;
       defBadge.textContent = `⚠️ Manque : ${planData.totalDeficitKwh} kWh non couverts`;
     } else {
-      defBadge.className = 'px-2.5 py-1 rounded-lg font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
-      defBadge.textContent = '✓ Charge 100% couverte';
+      defBadge.hidden = true;
     }
   }
 
