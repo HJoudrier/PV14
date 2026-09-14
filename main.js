@@ -1401,8 +1401,7 @@ const lockAxisWidth = (width) => (axis) => {
 // `x` (25 graduations 00:00..24:00, `offset: false`) : chaque point/barre se retrouve
 // donc centré sur la demi-heure de son créneau (ex. le créneau 00:00-01:00 est centré
 // sur 00:30), ce qui représente correctement une moyenne horaire, sans déplacer les
-// graduations affichées. Combiné à `stepped: 'middle'` sur les courbes, la transition
-// d'un créneau à l'autre se produit exactement sur l'heure pleine (l'escalier).
+// graduations affichées.
 const hiddenHourBarAxis = (hours) => ({
   type: 'category',
   position: 'bottom',
@@ -1516,7 +1515,7 @@ function renderPlanningCharts() {
               backgroundColor: 'rgba(245, 158, 11, 0.16)',
               borderWidth: 2,
               fill: true,
-              stepped: 'middle',
+              tension: 0,
               pointRadius: 0,
               xAxisID: 'xBar',
               yAxisID: 'yPower',
@@ -1530,7 +1529,7 @@ function renderPlanningCharts() {
               backgroundColor: 'rgba(225, 29, 72, 0.28)',
               borderWidth: 1,
               fill: true,
-              stepped: 'middle',
+              tension: 0,
               pointRadius: 0,
               xAxisID: 'xBar',
               yAxisID: 'yPower',
@@ -1542,7 +1541,7 @@ function renderPlanningCharts() {
               borderWidth: 2,
               borderDash: [5, 3],
               fill: false,
-              stepped: 'middle',
+              tension: 0,
               pointRadius: 0,
               xAxisID: 'xBar',
               yAxisID: 'yPower',
@@ -1556,7 +1555,7 @@ function renderPlanningCharts() {
               backgroundColor: 'rgba(37, 99, 235, 0.16)',
               borderWidth: 2,
               fill: true,
-              stepped: 'middle',
+              tension: 0,
               pointRadius: 0,
               xAxisID: 'xBar',
               yAxisID: 'yPower',
@@ -1570,7 +1569,7 @@ function renderPlanningCharts() {
               borderWidth: 2,
               borderDash: [5, 3],
               fill: false,
-              stepped: 'middle',
+              tension: 0,
               pointRadius: 0,
               xAxisID: 'xBar',
               yAxisID: 'yPower',
