@@ -1695,7 +1695,7 @@ function renderPlanningCharts() {
       chart.update('none');
     } else {
       state.charts.planningBess = new Chart(ctxBess, {
-        type: 'bar',
+        type: 'line',
         data: {
           labels: hoursExt,
           datasets: [
