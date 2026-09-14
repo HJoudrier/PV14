@@ -14,8 +14,11 @@ function renderPowerChart(planData, hoursExt) {
     const gridRawVals = planData.gridPlanRaw;
     const priceBars = planData.gridPrice;
 
+    const gridImportLimitVals = planData.gridContractLine;
+    const gridExportLimitVals = planData.gridExportLimitLine;
+
     const alignedScales = computeAlignedZeroScales(
-      [...pvVals, ...loadCoveredNegVals, ...loadNegVals, ...gridVals, ...gridRawVals],
+      [...pvVals, ...loadCoveredNegVals, ...loadNegVals, ...gridVals, ...gridRawVals, ...gridImportLimitVals, ...gridExportLimitVals],
       planData.gridPrice
     );
 
@@ -36,6 +39,8 @@ function renderPowerChart(planData, hoursExt) {
       chart.data.datasets[3].data = gridVals;
       chart.data.datasets[4].data = gridRawVals;
       chart.data.datasets[5].data = priceBars;
+      chart.data.datasets[6].data = gridImportLimitVals;
+      chart.data.datasets[7].data = gridExportLimitVals;
       chart.options.scales.yPower.min = alignedScales.powerMin;
       chart.options.scales.yPower.max = alignedScales.powerMax;
       chart.options.scales.yPrice.min = alignedScales.priceMin;
@@ -127,6 +132,32 @@ function renderPowerChart(planData, hoursExt) {
               xAxisID: 'xBar',
               yAxisID: 'yPrice',
               order: 10,
+            },
+            {
+              // Limite contractuelle de soutirage (puissance de raccordement).
+              label: 'Limite raccordement (soutirage) ',
+              data: gridImportLimitVals,
+              borderColor: '#94a3b8',
+              borderWidth: 1.5,
+              borderDash: [6, 4],
+              fill: false,
+              tension: 0,
+              pointRadius: 0,
+              xAxisID: 'xBar',
+              yAxisID: 'yPower',
+            },
+            {
+              // Limite contractuelle d'injection (export) vers le réseau.
+              label: 'Limite injection (export) ',
+              data: gridExportLimitVals,
+              borderColor: '#94a3b8',
+              borderWidth: 1.5,
+              borderDash: [2, 3],
+              fill: false,
+              tension: 0,
+              pointRadius: 0,
+              xAxisID: 'xBar',
+              yAxisID: 'yPower',
             },
           ],
         },

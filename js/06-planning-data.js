@@ -5,6 +5,7 @@ function getPlanningHourlyData() {
 
   const pvScale = state.params.pvCapacityKwp > 0 ? state.params.pvCapacityKwp / 250 : 1;
   const contractLimit = Math.max(0, state.params.gridContractKw || 160);
+  const exportLimit = Math.max(0, state.params.gridMaxExportKw || contractLimit);
   const bessPowerMax = Math.max(0, state.params.bessPowerKw || 150);
   const capacityKwh = Math.max(1, state.params.bessCapacityKwh || 400);
   const eff = Math.sqrt((state.params.bessEfficiencyPercent || 92) / 100);
@@ -18,6 +19,7 @@ function getPlanningHourlyData() {
   const gridPlan = [];
   const gridPlanRaw = [];
   const gridContractLine = [];
+  const gridExportLimitLine = [];
   const deficit = [];
   const gridPrice = [];
   const bessPlan = [];
@@ -25,8 +27,10 @@ function getPlanningHourlyData() {
   const bessPowerLimited = [];
   const bessSocLimited = [];
   const socCurve = [];
+  const socCurveUnlimited = [];
 
   let currentSoc = state.params.bessInitialSocPercent || 45;
+  let currentSocUnlimited = currentSoc;
   let totalDeficitKwh = 0;
 
   for (let h = 0; h < 24; h++) {
@@ -51,6 +55,7 @@ function getPlanningHourlyData() {
     loadPlan.push(Number(loadH.toFixed(1)));
     gridPrice.push(Number(priceH.toFixed(1)));
     gridContractLine.push(contractLimit);
+    gridExportLimitLine.push(-exportLimit);
 
     // 2. BESS command evaluation & physical constraints
     const pReq = state.planningBess[h] !== undefined ? state.planningBess[h] : 0;
@@ -82,6 +87,15 @@ function getPlanningHourlyData() {
     bessSocLimited.push(socLimited);
     socCurve.push(Number(currentSoc.toFixed(1)));
 
+    // Trajectoire théorique du SoC si la consigne demandée était intégralement
+    // applicable (sans limite de puissance onduleur ni de capacité/plage de SoC).
+    if (pReq > 0) {
+      currentSocUnlimited -= (pReq / eff / capacityKwh) * 100;
+    } else if (pReq < 0) {
+      currentSocUnlimited += (Math.abs(pReq) * eff / capacityKwh) * 100;
+    }
+    socCurveUnlimited.push(Number(currentSocUnlimited.toFixed(1)));
+
     // 3. Electrical balance: PV + BESS + GRID = LOAD
     // Net demand from grid before limits:
     const netDemand = loadH - pvH - pEff;
@@ -106,7 +120,6 @@ function getPlanningHourlyData() {
       }
     } else {
       // Net export surplus
-      const exportLimit = state.params.gridMaxExportKw || contractLimit;
       pGrid = Math.max(netDemand, -exportLimit);
       pDeficit = 0;
       loadCovered.push(Number(loadH.toFixed(1)));
@@ -125,6 +138,7 @@ function getPlanningHourlyData() {
     gridPlan,
     gridPlanRaw,
     gridContractLine,
+    gridExportLimitLine,
     deficit,
     gridPrice,
     bessPlan,
@@ -132,6 +146,9 @@ function getPlanningHourlyData() {
     bessPowerLimited,
     bessSocLimited,
     socCurve,
+    socCurveUnlimited,
+    socMinLimit: minSoc,
+    socMaxLimit: maxSoc,
     totalDeficitKwh: Number(totalDeficitKwh.toFixed(1)),
     finalSoc: Number(currentSoc.toFixed(1)),
   };

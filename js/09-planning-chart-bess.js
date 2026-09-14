@@ -6,16 +6,24 @@ function renderBessChart(planData, hoursExt) {
     // Barres centrées sur la demi-heure de leur créneau (axe xBar caché), il n'y a pas
     // de barre pour une "heure 24" qui n'existe pas.
     const bessPlanBars = planData.bessPlan;
+    const bessPlanReqBars = planData.bessPlanReq;
     // Le SoC doit tomber sur les heures entières, entre deux barres : le point 0 (00:00)
     // est le SoC initial (avant toute opération), et le point i (i = 1..24) est le SoC
     // résultant à la fin de l'heure (i-1), donc le dernier point (24:00) = SoC final réel.
     const socBoundariesExt = [state.params.bessInitialSocPercent, ...planData.socCurve];
+    const socBoundariesUnlimitedExt = [state.params.bessInitialSocPercent, ...planData.socCurveUnlimited];
+    const socMaxLine = new Array(hoursExt.length).fill(planData.socMaxLimit);
+    const socMinLine = new Array(hoursExt.length).fill(planData.socMinLimit);
 
     if (state.charts.planningBess) {
       const chart = state.charts.planningBess;
       chart.data.labels = hoursExt;
-      chart.data.datasets[0].data = bessPlanBars;
-      chart.data.datasets[1].data = socBoundariesExt;
+      chart.data.datasets[0].data = bessPlanReqBars;
+      chart.data.datasets[1].data = bessPlanBars;
+      chart.data.datasets[2].data = socBoundariesExt;
+      chart.data.datasets[3].data = socBoundariesUnlimitedExt;
+      chart.data.datasets[4].data = socMaxLine;
+      chart.data.datasets[5].data = socMinLine;
       chart.options.scales.yPower.suggestedMin = -pMax;
       chart.options.scales.yPower.suggestedMax = pMax;
       chart.update('none');
@@ -25,6 +33,24 @@ function renderBessChart(planData, hoursExt) {
         data: {
           labels: hoursExt,
           datasets: [
+            {
+              // Consigne demandée (avant limitation par la puissance onduleur / le SoC) :
+              // tracée en pointillé, superposée à la puissance réellement chargée/déchargée.
+              type: 'bar',
+              label: 'Consigne demandée (kW)',
+              data: bessPlanReqBars,
+              barPercentage: 0.9,
+              categoryPercentage: 0.8,
+              grouped: false,
+              xAxisID: 'xBar',
+              yAxisID: 'yPower',
+              borderRadius: 3,
+              backgroundColor: 'rgba(0, 0, 0, 0)',
+              borderColor: (ctx) => (ctx.dataIndex === state.selectedPlanningHour ? '#0f172a' : '#64748b'),
+              borderWidth: (ctx) => (ctx.dataIndex === state.selectedPlanningHour ? 2 : 1.5),
+              borderDash: [4, 3],
+              order: 0,
+            },
             {
               type: 'bar',
               label: 'Puissance BESS (kW)',
@@ -50,6 +76,7 @@ function renderBessChart(planData, hoursExt) {
                 return ctx.raw >= 0 ? '#059669' : '#d97706';
               },
               borderWidth: (ctx) => (ctx.dataIndex === state.selectedPlanningHour ? 2.5 : 1),
+              order: 1,
             },
             {
               type: 'line',
@@ -66,6 +93,46 @@ function renderBessChart(planData, hoursExt) {
               pointBackgroundColor: (ctx) => (ctx.dataIndex === state.selectedPlanningHour + 1 ? '#4338ca' : '#6366f1'),
               pointBorderColor: '#ffffff',
               pointBorderWidth: 1.5,
+            },
+            {
+              // Trajectoire théorique du SoC si toutes les consignes demandées étaient
+              // intégralement applicables (sans limite de puissance ni de SoC).
+              type: 'line',
+              label: 'SoC si consignes 100% appliquées (%)',
+              data: socBoundariesUnlimitedExt,
+              yAxisID: 'ySoC',
+              borderColor: '#a5b4fc',
+              borderWidth: 2,
+              borderDash: [5, 3],
+              fill: false,
+              tension: 0,
+              pointRadius: 0,
+            },
+            {
+              // Limite haute de SoC.
+              type: 'line',
+              label: 'Limite SoC max (%)',
+              data: socMaxLine,
+              yAxisID: 'ySoC',
+              borderColor: '#f43f5e',
+              borderWidth: 1.25,
+              borderDash: [3, 3],
+              fill: false,
+              tension: 0,
+              pointRadius: 0,
+            },
+            {
+              // Limite basse de SoC.
+              type: 'line',
+              label: 'Limite SoC min (%)',
+              data: socMinLine,
+              yAxisID: 'ySoC',
+              borderColor: '#f43f5e',
+              borderWidth: 1.25,
+              borderDash: [3, 3],
+              fill: false,
+              tension: 0,
+              pointRadius: 0,
             },
           ],
         },
@@ -88,11 +155,11 @@ function renderBessChart(planData, hoursExt) {
               callbacks: {
                 label: (ctx) => {
                   if (ctx.dataset.yAxisID === 'ySoC') {
-                    return ` SoC Batterie: ${ctx.raw}%`;
+                    return ` ${ctx.dataset.label}: ${ctx.raw}%`;
                   }
                   const v = ctx.raw;
                   const mode = v > 0 ? 'Décharge' : v < 0 ? 'Charge' : 'Veille';
-                  return ` BESS: ${v > 0 ? '+' : ''}${v} kW (${mode})`;
+                  return ` ${ctx.dataset.label}: ${v > 0 ? '+' : ''}${v} kW (${mode})`;
                 },
               },
             },
