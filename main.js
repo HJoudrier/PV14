@@ -1401,6 +1401,20 @@ const lockAxisWidth = (width) => (axis) => {
 // pixel), sans dessiner de segment/barre fantôme sur ce dernier pas de temps.
 const padNull = (arr) => [...arr, null];
 
+// Axe catégoriel caché à 24 créneaux (avec `offset: true`, comme le ferait n'importe
+// quel bar chart), utilisé uniquement pour les barres d'histogramme. Ses 24 cellules
+// se calent exactement sur les 24 intervalles de l'axe horaire principal `x` (25
+// graduations 00:00..24:00, `offset: false`) : chaque barre se retrouve donc centrée
+// sur la demi-heure de son créneau (ex. le créneau 00:00-01:00 est centré sur 00:30)
+// sans déplacer les graduations affichées.
+const hiddenHourBarAxis = (hours) => ({
+  type: 'category',
+  position: 'bottom',
+  offset: true,
+  labels: hours,
+  display: false,
+});
+
 // Calcule des bornes min/max pour l'axe puissance (yPower) et l'axe prix (yPrice) de la
 // Courbe 1 telles que leurs deux "0" tombent exactement à la même hauteur (même fraction
 // verticale), même si la puissance a des valeurs négatives et le prix non.
@@ -1464,11 +1478,11 @@ function renderPlanningCharts() {
     const loadNegExt = padNull(loadNeg);
     const gridExt = padNull(planData.gridPlan);
     const gridRawExt = padNull(planData.gridPlanRaw);
-    const priceExt = padNull(planData.gridPrice);
+    const priceBars = planData.gridPrice;
 
     const alignedScales = computeAlignedZeroScales(
       [...pvExt, ...loadCoveredNegExt, ...loadNegExt, ...gridExt, ...gridRawExt],
-      priceExt
+      planData.gridPrice
     );
 
     // Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00",
@@ -1488,7 +1502,7 @@ function renderPlanningCharts() {
       chart.data.datasets[2].data = loadNegExt;
       chart.data.datasets[3].data = gridExt;
       chart.data.datasets[4].data = gridRawExt;
-      chart.data.datasets[5].data = priceExt;
+      chart.data.datasets[5].data = priceBars;
       chart.options.scales.yPower.min = alignedScales.powerMin;
       chart.options.scales.yPower.max = alignedScales.powerMax;
       chart.options.scales.yPrice.min = alignedScales.priceMin;
@@ -1564,11 +1578,12 @@ function renderPlanningCharts() {
             {
               type: 'bar',
               label: 'Prix Réseau ',
-              data: priceExt,
+              data: priceBars,
               backgroundColor: 'rgba(217, 119, 6, 0.35)',
               borderColor: '#d97706',
               borderWidth: 1,
               borderRadius: 2,
+              xAxisID: 'xBar',
               yAxisID: 'yPrice',
               order: 10,
             },
@@ -1624,9 +1639,11 @@ function renderPlanningCharts() {
           },
           scales: {
             x: {
+              offset: false,
               grid: { color: '#f1f5f9' },
               ticks: { color: '#64748b', font: { size: 11 } },
             },
+            xBar: hiddenHourBarAxis(planData.hours),
             yPower: {
               type: 'linear',
               position: 'left',
@@ -1658,8 +1675,9 @@ function renderPlanningCharts() {
   if (ctxBess) {
     const pMax = Math.max(state.params.bessPowerKw * 1.15, 50);
 
-    // Il n'y a pas d'heure 24 à piloter : pas de barre fantôme sur le dernier point.
-    const bessPlanExt = [...planData.bessPlan, null];
+    // Barres centrées sur la demi-heure de leur créneau (axe xBar caché), il n'y a pas
+    // de barre pour une "heure 24" qui n'existe pas.
+    const bessPlanBars = planData.bessPlan;
     // Le SoC doit tomber sur les heures entières, entre deux barres : le point 0 (00:00)
     // est le SoC initial (avant toute opération), et le point i (i = 1..24) est le SoC
     // résultant à la fin de l'heure (i-1), donc le dernier point (24:00) = SoC final réel.
@@ -1668,7 +1686,7 @@ function renderPlanningCharts() {
     if (state.charts.planningBess) {
       const chart = state.charts.planningBess;
       chart.data.labels = hoursExt;
-      chart.data.datasets[0].data = bessPlanExt;
+      chart.data.datasets[0].data = bessPlanBars;
       chart.data.datasets[1].data = socBoundariesExt;
       chart.options.scales.yPower.suggestedMin = -pMax;
       chart.options.scales.yPower.suggestedMax = pMax;
@@ -1682,7 +1700,8 @@ function renderPlanningCharts() {
             {
               type: 'bar',
               label: 'Puissance BESS (kW)',
-              data: bessPlanExt,
+              data: bessPlanBars,
+              xAxisID: 'xBar',
               yAxisID: 'yPower',
               borderRadius: 3,
               backgroundColor: (ctx) => {
@@ -1749,9 +1768,11 @@ function renderPlanningCharts() {
           },
           scales: {
             x: {
+              offset: false,
               grid: { color: '#f1f5f9' },
               ticks: { color: '#64748b', font: { size: 11 } },
             },
+            xBar: hiddenHourBarAxis(planData.hours),
             yPower: {
               type: 'linear',
               position: 'left',
