@@ -497,12 +497,12 @@
                 </button>
               </div>
 
-              <!-- Statut et valeur de consigne -->
+              <!-- Statut et valeurs de SoC -->
               <div class="flex items-center gap-3">
                 <div class="text-center">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Consigne BESS</span>
-                  <span id="planning-power-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
-                    +80 kW (Décharge ⚡)
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC initial</span>
+                  <span id="planning-hour-soc-initial-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
+                    45.0%
                   </span>
                 </div>
                 <div class="text-center">
@@ -513,63 +513,44 @@
                 </div>
               </div>
 
-              <!-- Curseur Slider interactif -->
-              <div class="flex items-center gap-2 flex-1 max-w-xs min-w-[200px]">
-                <span class="text-[11px] font-mono text-amber-700 font-medium whitespace-nowrap" id="planning-slider-min-lbl">-150 kW</span>
-                <input
-                  type="range"
-                  id="planning-bess-slider"
-                  min="-150"
-                  max="150"
-                  step="5"
-                  value="0"
-                  class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer accent-indigo-600"
-                />
-                <span class="text-[11px] font-mono text-emerald-700 font-medium whitespace-nowrap" id="planning-slider-max-lbl">+150 kW</span>
-              </div>
-
-              <!-- Boutons de pas et actions rapides -->
-              <div class="flex items-center gap-1.5 text-xs">
-                <button
-                  type="button"
-                  class="btn-bess-step px-2 py-1 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-mono font-bold transition-colors"
-                  data-step="-10"
-                  title="Diminuer de 10 kW"
-                >
-                  &minus;10
-                </button>
-                <button
-                  type="button"
-                  class="btn-bess-step px-2 py-1 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-mono font-bold transition-colors"
-                  data-step="10"
-                  title="Augmenter de 10 kW"
-                >
-                  +10
-                </button>
-                <div class="h-5 w-px bg-slate-300 mx-1"></div>
-                <button
-                  type="button"
-                  id="btn-bess-max-discharge"
-                  class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors shadow-2xs"
-                  title="Décharger à la puissance maximale"
-                >
-                  ⚡ Décharge Max
-                </button>
+              <!-- Consigne BESS : champ numérique avec boutons +/- -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Consigne BESS</span>
+                <div class="flex items-center rounded-lg border border-indigo-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+                  <button
+                    type="button"
+                    id="btn-plan-power-minus"
+                    class="px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    title="Diminuer de 10 kW"
+                  >
+                    &minus;
+                  </button>
+                  <input
+                    type="number"
+                    id="planning-bess-power-input"
+                    min="-150"
+                    max="150"
+                    step="5"
+                    value="0"
+                    class="w-20 text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                  />
+                  <button
+                    type="button"
+                    id="btn-plan-power-plus"
+                    class="px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    title="Augmenter de 10 kW"
+                  >
+                    +
+                  </button>
+                </div>
+                <span class="text-xs font-bold font-mono text-slate-600 select-none">kW</span>
                 <button
                   type="button"
                   id="btn-bess-zero"
-                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold transition-colors"
+                  class="ml-1 px-2 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs transition-colors"
                   title="Consigne à zéro (veille)"
                 >
                   ⏸ 0 kW
-                </button>
-                <button
-                  type="button"
-                  id="btn-bess-max-charge"
-                  class="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold transition-colors shadow-2xs"
-                  title="Charger à la puissance maximale"
-                >
-                  🔋 Charge Max
                 </button>
               </div>
             </div>

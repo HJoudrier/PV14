@@ -1288,35 +1288,28 @@ function updatePlanningControllerUI(planData) {
   setText('planning-hour-display', `${hh}h00 - ${nextH}h00`);
 
   const currentPower = state.planningBess[h] !== undefined ? state.planningBess[h] : 0;
-  const powerBadge = document.getElementById('planning-power-badge');
-  if (powerBadge) {
-    if (currentPower > 0) {
-      powerBadge.className = 'px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800';
-      powerBadge.textContent = `+${currentPower.toFixed(0)} kW (Décharge ⚡)`;
-    } else if (currentPower < 0) {
-      powerBadge.className = 'px-2 py-0.5 rounded text-xs font-bold font-mono bg-amber-100 text-amber-800';
-      powerBadge.textContent = `${currentPower.toFixed(0)} kW (Charge 🔋)`;
-    } else {
-      powerBadge.className = 'px-2 py-0.5 rounded text-xs font-bold font-mono bg-slate-100 text-slate-700';
-      powerBadge.textContent = '0 kW (Veille ⏸)';
+
+  // Update initial SoC (= résultant du pas de temps précédent) and resulting SoC for this hour
+  if (planData && planData.socCurve) {
+    const initialSoc = h === 0 ? state.params.bessInitialSocPercent : planData.socCurve[h - 1];
+    if (initialSoc !== undefined) {
+      setText('planning-hour-soc-initial-badge', `${initialSoc}%`);
+    }
+    if (planData.socCurve[h] !== undefined) {
+      setText('planning-hour-soc-badge', `${planData.socCurve[h]}%`);
     }
   }
 
-  // Update resulting SoC for this hour
-  if (planData && planData.socCurve && planData.socCurve[h] !== undefined) {
-    setText('planning-hour-soc-badge', `${planData.socCurve[h]}%`);
-  }
-
-  // Slider bounds & value
+  // Champ de consigne (numérique) : bornes & valeur
   const maxKw = state.params.bessPowerKw || 150;
-  const slider = document.getElementById('planning-bess-slider');
-  if (slider) {
-    slider.min = -maxKw;
-    slider.max = maxKw;
-    slider.value = currentPower;
+  const powerInput = document.getElementById('planning-bess-power-input');
+  if (powerInput) {
+    powerInput.min = -maxKw;
+    powerInput.max = maxKw;
+    if (document.activeElement !== powerInput) {
+      powerInput.value = currentPower;
+    }
   }
-  setText('planning-slider-min-lbl', `-${maxKw} kW`);
-  setText('planning-slider-max-lbl', `+${maxKw} kW`);
 }
 
 function setSelectedPlanningHour(hour) {
@@ -1895,30 +1888,22 @@ function applyProfileZero() {
 }
 
 function bindPlanningEventListeners() {
-  const slider = document.getElementById('planning-bess-slider');
-  if (slider) {
-    slider.addEventListener('input', (e) => {
-      setPlanningHourPower(state.selectedPlanningHour, parseFloat(e.target.value));
-    });
+  const powerInput = document.getElementById('planning-bess-power-input');
+  if (powerInput) {
+    const commitPowerInput = (e) => {
+      const val = parseFloat(e.target.value);
+      if (isNaN(val)) return;
+      setPlanningHourPower(state.selectedPlanningHour, val);
+    };
+    powerInput.addEventListener('input', commitPowerInput);
+    powerInput.addEventListener('change', commitPowerInput);
   }
 
-  document.querySelectorAll('.btn-bess-step').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const step = parseFloat(btn.getAttribute('data-step')) || 0;
-      changeSelectedHourPower(step);
-    });
-  });
-
-  document.getElementById('btn-bess-max-discharge')?.addEventListener('click', () => {
-    setPlanningHourPower(state.selectedPlanningHour, state.params.bessPowerKw);
-  });
+  document.getElementById('btn-plan-power-minus')?.addEventListener('click', () => changeSelectedHourPower(-10));
+  document.getElementById('btn-plan-power-plus')?.addEventListener('click', () => changeSelectedHourPower(10));
 
   document.getElementById('btn-bess-zero')?.addEventListener('click', () => {
     setPlanningHourPower(state.selectedPlanningHour, 0);
-  });
-
-  document.getElementById('btn-bess-max-charge')?.addEventListener('click', () => {
-    setPlanningHourPower(state.selectedPlanningHour, -state.params.bessPowerKw);
   });
 
   document.getElementById('btn-plan-prev-hour')?.addEventListener('click', () => {
