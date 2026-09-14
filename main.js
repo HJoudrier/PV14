@@ -1355,7 +1355,8 @@ function setupPlanningCanvasDrag(canvas) {
     const elements = chart.getElementsAtEventForMode(e, 'index', { intersect: false }, false);
     if (elements && elements.length > 0) {
       state.isDraggingPlanning = true;
-      const clickedHour = elements[0].index;
+      // Le point 24 (24:00) est la duplication visuelle de l'heure 23 : le ramener à 23.
+      const clickedHour = Math.min(23, elements[0].index);
       state.selectedPlanningHour = clickedHour;
       updatePowerFromPointer(e);
       try {
@@ -1382,8 +1383,23 @@ function setupPlanningCanvasDrag(canvas) {
   canvas.addEventListener('pointercancel', stopDrag);
 }
 
+// Largeurs d'axe fixes (en pixels) partagées par les deux graphiques de planification,
+// pour que leurs zones de tracé démarrent/finissent exactement au même endroit et que
+// les pas horaires restent alignés verticalement entre les deux graphiques empilés.
+const PLANNING_AXIS_WIDTH_LEFT = 54;
+const PLANNING_AXIS_WIDTH_RIGHT = 54;
+const lockAxisWidth = (width) => (axis) => {
+  axis.width = width;
+};
+
+// Le dernier point (23:00) est dupliqué sur 24:00 pour que l'escalier / l'histogramme
+// aille jusqu'à la fin de la journée, et pour que les deux graphiques de planification
+// partagent exactement le même nombre de catégories sur l'axe des heures (pas de décalage).
+const dupLast = (arr) => [...arr, arr[arr.length - 1]];
+
 function renderPlanningCharts() {
   const planData = getPlanningHourlyData();
+  const hoursExt = [...planData.hours, '24:00'];
 
   // Update Section Badges
   setText('planning-grid-contract-badge', `🌐 Limite Réseau : ${state.params.gridContractKw} kW`);
@@ -1413,14 +1429,11 @@ function renderPlanningCharts() {
     const loadNeg = planData.loadPlan.map((v) => -v);
     const loadCoveredNeg = planData.loadCovered.map((v) => -v);
 
-    // Le dernier point (23:00) est dupliqué sur 24:00 pour que l'escalier aille
-    // jusqu'à la fin de la journée au lieu de s'arrêter à 23h.
-    const dupLast = (arr) => [...arr, arr[arr.length - 1]];
-    const hoursExt = [...planData.hours, '24:00'];
     const pvExt = dupLast(planData.pvPlan);
     const loadCoveredNegExt = dupLast(loadCoveredNeg);
     const loadNegExt = dupLast(loadNeg);
     const gridExt = dupLast(planData.gridPlan);
+    const priceExt = dupLast(planData.gridPrice);
 
     // Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00",
     // le point dupliqué (24:00) reprenant le même intervalle que le dernier point réel.
@@ -1438,6 +1451,7 @@ function renderPlanningCharts() {
       chart.data.datasets[1].data = loadCoveredNegExt;
       chart.data.datasets[2].data = loadNegExt;
       chart.data.datasets[3].data = gridExt;
+      chart.data.datasets[4].data = priceExt;
       chart.update('none');
     } else {
       state.charts.planningPower = new Chart(ctxPower, {
@@ -1491,6 +1505,17 @@ function renderPlanningCharts() {
               pointRadius: 0,
               yAxisID: 'yPower',
             },
+            {
+              type: 'bar',
+              label: 'Prix Réseau (€/MWh)',
+              data: priceExt,
+              backgroundColor: 'rgba(217, 119, 6, 0.35)',
+              borderColor: '#d97706',
+              borderWidth: 1,
+              borderRadius: 2,
+              yAxisID: 'yPrice',
+              order: 10,
+            },
           ],
         },
         options: {
@@ -1532,7 +1557,9 @@ function renderPlanningCharts() {
             tooltip: {
               callbacks: {
                 title: tooltipHourRangeTitle,
-                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw} kW`,
+                label: (ctx) => (ctx.dataset.yAxisID === 'yPrice'
+                  ? ` ${ctx.dataset.label}: ${ctx.raw} €/MWh`
+                  : ` ${ctx.dataset.label}: ${ctx.raw} kW`),
               },
             },
           },
@@ -1544,9 +1571,18 @@ function renderPlanningCharts() {
             yPower: {
               type: 'linear',
               position: 'left',
+              afterFit: lockAxisWidth(PLANNING_AXIS_WIDTH_LEFT),
               grid: { color: '#f1f5f9' },
               title: { display: true, text: 'Puissance (kW) — Producteur (+) / Consommateur (-)', color: '#475569', font: { size: 11 } },
               ticks: { color: '#64748b', callback: (v) => `${v} kW` },
+            },
+            yPrice: {
+              type: 'linear',
+              position: 'right',
+              afterFit: lockAxisWidth(PLANNING_AXIS_WIDTH_RIGHT),
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Prix Spot (€/MWh)', color: '#d97706', font: { size: 11 } },
+              ticks: { color: '#d97706', callback: (v) => `${v} €` },
             },
           },
         },
@@ -1559,11 +1595,14 @@ function renderPlanningCharts() {
   if (ctxBess) {
     const pMax = Math.max(state.params.bessPowerKw * 1.15, 50);
 
+    const bessPlanExt = dupLast(planData.bessPlan);
+    const socCurveExt = dupLast(planData.socCurve);
+
     if (state.charts.planningBess) {
       const chart = state.charts.planningBess;
-      chart.data.labels = planData.hours;
-      chart.data.datasets[0].data = planData.bessPlan;
-      chart.data.datasets[1].data = planData.socCurve;
+      chart.data.labels = hoursExt;
+      chart.data.datasets[0].data = bessPlanExt;
+      chart.data.datasets[1].data = socCurveExt;
       chart.options.scales.yPower.suggestedMin = -pMax;
       chart.options.scales.yPower.suggestedMax = pMax;
       chart.update('none');
@@ -1571,12 +1610,12 @@ function renderPlanningCharts() {
       state.charts.planningBess = new Chart(ctxBess, {
         type: 'bar',
         data: {
-          labels: planData.hours,
+          labels: hoursExt,
           datasets: [
             {
               type: 'bar',
               label: 'Puissance BESS (kW)',
-              data: planData.bessPlan,
+              data: bessPlanExt,
               yAxisID: 'yPower',
               borderRadius: 3,
               backgroundColor: (ctx) => {
@@ -1598,7 +1637,7 @@ function renderPlanningCharts() {
             {
               type: 'line',
               label: 'Niveau de SoC (%)',
-              data: planData.socCurve,
+              data: socCurveExt,
               yAxisID: 'ySoC',
               borderColor: '#6366f1',
               backgroundColor: 'rgba(99, 102, 241, 0.08)',
@@ -1647,6 +1686,7 @@ function renderPlanningCharts() {
             yPower: {
               type: 'linear',
               position: 'left',
+              afterFit: lockAxisWidth(PLANNING_AXIS_WIDTH_LEFT),
               suggestedMin: -pMax,
               suggestedMax: pMax,
               grid: {
@@ -1667,6 +1707,7 @@ function renderPlanningCharts() {
             ySoC: {
               type: 'linear',
               position: 'right',
+              afterFit: lockAxisWidth(PLANNING_AXIS_WIDTH_RIGHT),
               min: 0,
               max: 100,
               grid: { drawOnChartArea: false },
