@@ -33,23 +33,28 @@ never a later one) and the numeric filename prefixes reflect that
 order. Keep using plain `<script src="...">` tags (not `type="module"`)
 so the app keeps working when opened directly via `file://`.
 
-## Updating styles (index.css)
+## Updating styles (css/)
 
-`index.css` is a **compiled** Tailwind CSS file — do not hand-edit its
-utility classes directly. The real source is
+The stylesheet lives in [`css/`](css), split into small files (each under
+10 KB) loaded in order by `index.html` — together they're one compiled
+Tailwind CSS output, so **do not hand-edit their utility classes
+directly**, and keep the `<link>` order in `index.html` unchanged (it
+reproduces the original cascade: properties/theme, base, three utilities
+chunks, then the custom rules). The real source is
 [`tailwind.src.css`](tailwind.src.css) (just `@import "tailwindcss";` plus
 the handful of custom rules), which needs Tailwind to turn Tailwind classes
-used in `index.html` into actual CSS. To regenerate `index.css` after
-changing classes in `index.html` or rules in `tailwind.src.css`:
+used in `index.html` into actual CSS. To regenerate `css/` after changing
+classes in `index.html` or rules in `tailwind.src.css`:
 
-```
-npm install --no-save vite @tailwindcss/vite tailwindcss
-cp tailwind.src.css index.css
-npx vite build --minify=false --cssMinify=false
-cp dist/assets/index-*.css index.css
-rm -rf dist node_modules package-lock.json
-```
+1. Rebuild a single compiled CSS file the same way as before the `css/`
+   split (see git history for the exact `vite.config.js` +
+   `npx vite build --minify=false --cssMinify=false` recipe using
+   `tailwind.src.css` as input).
+2. Re-split that single file into `css/01-properties-theme.css` through
+   `css/06-custom.css` at the same cut points: `@layer properties` +
+   `@layer theme` | `@layer base` + `@layer components;` | three ~9 KB
+   slices of `@layer utilities { ... }` (each file re-wraps its slice in
+   its own `@layer utilities { }`) | the trailing custom rules after the
+   utilities layer closes.
 
-(A minimal `vite.config.js` with the `@tailwindcss/vite` plugin is required
-for this — see git history for an example.) This is a one-off local build
-step; none of it is needed to run the app itself.
+This is a one-off local step; none of it is needed to run the app itself.
