@@ -1174,6 +1174,7 @@ function getPlanningHourlyData() {
   const loadPlan = [];
   const loadCovered = [];
   const gridPlan = [];
+  const gridPlanRaw = [];
   const gridContractLine = [];
   const deficit = [];
   const gridPrice = [];
@@ -1258,6 +1259,7 @@ function getPlanningHourlyData() {
     }
 
     gridPlan.push(Number(pGrid.toFixed(1)));
+    gridPlanRaw.push(Number(netDemand.toFixed(1)));
     deficit.push(Number(pDeficit.toFixed(1)));
   }
 
@@ -1267,6 +1269,7 @@ function getPlanningHourlyData() {
     loadPlan,
     loadCovered,
     gridPlan,
+    gridPlanRaw,
     gridContractLine,
     deficit,
     gridPrice,
@@ -1457,10 +1460,11 @@ function renderPlanningCharts() {
     const loadCoveredNegExt = dupLast(loadCoveredNeg);
     const loadNegExt = dupLast(loadNeg);
     const gridExt = dupLast(planData.gridPlan);
+    const gridRawExt = dupLast(planData.gridPlanRaw);
     const priceExt = dupLast(planData.gridPrice);
 
     const alignedScales = computeAlignedZeroScales(
-      [...pvExt, ...loadCoveredNegExt, ...loadNegExt, ...gridExt],
+      [...pvExt, ...loadCoveredNegExt, ...loadNegExt, ...gridExt, ...gridRawExt],
       priceExt
     );
 
@@ -1480,7 +1484,8 @@ function renderPlanningCharts() {
       chart.data.datasets[1].data = loadCoveredNegExt;
       chart.data.datasets[2].data = loadNegExt;
       chart.data.datasets[3].data = gridExt;
-      chart.data.datasets[4].data = priceExt;
+      chart.data.datasets[4].data = gridRawExt;
+      chart.data.datasets[5].data = priceExt;
       chart.options.scales.yPower.min = alignedScales.powerMin;
       chart.options.scales.yPower.max = alignedScales.powerMax;
       chart.options.scales.yPrice.min = alignedScales.priceMin;
@@ -1528,12 +1533,27 @@ function renderPlanningCharts() {
               yAxisID: 'yPower',
             },
             {
-              label: 'Réseau ',
+              // Réseau réellement mobilisé : la consigne d'équilibre plafonnée par la
+              // limite de raccordement (import) / d'export contractuelle.
+              label: 'Réseau fourni ',
               data: gridExt,
               borderColor: '#2563eb',
               backgroundColor: 'rgba(37, 99, 235, 0.16)',
               borderWidth: 2,
               fill: true,
+              tension: 0,
+              pointRadius: 0,
+              yAxisID: 'yPower',
+            },
+            {
+              // Consigne réseau nécessaire pour équilibrer le système et opérer
+              // intégralement la charge, sans tenir compte de la limite de raccordement.
+              label: 'Réseau demandé ',
+              data: gridRawExt,
+              borderColor: '#2563eb',
+              borderWidth: 2,
+              borderDash: [5, 3],
+              fill: false,
               tension: 0,
               pointRadius: 0,
               yAxisID: 'yPower',
@@ -1562,25 +1582,28 @@ function renderPlanningCharts() {
                 boxWidth: 12,
                 font: { size: 11 },
                 color: '#475569',
-                // "Charge fournie" (index 1) et "Charge demandée" (index 2) sont deux
-                // datasets distincts (aire remplie + contour) mais une seule et même
-                // grandeur physique : on les fusionne sous une unique légende "Charge (kW)".
+                // "Charge fournie"/"Charge demandée" (index 1/2) et "Réseau fourni"/
+                // "Réseau demandé" (index 3/4) sont chacune deux datasets distincts
+                // (aire remplie + contour) pour une seule et même grandeur physique :
+                // on les fusionne sous une unique légende "Charge (kW)" / "Réseau (kW)".
                 generateLabels: (chart) => {
                   const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
                   return items
-                    .filter((item) => item.datasetIndex !== 2)
+                    .filter((item) => item.datasetIndex !== 2 && item.datasetIndex !== 4)
                     .map((item) => {
                       if (item.datasetIndex === 1) item.text = 'Charge (kW)';
+                      if (item.datasetIndex === 3) item.text = 'Réseau (kW)';
                       return item;
                     });
                 },
               },
               onClick: (evt, legendItem, legend) => {
                 const chart = legend.chart;
-                if (legendItem.datasetIndex === 1) {
-                  const hidden = !chart.getDatasetMeta(1).hidden;
-                  chart.getDatasetMeta(1).hidden = hidden;
-                  chart.getDatasetMeta(2).hidden = hidden;
+                const pairedIndex = { 1: 2, 3: 4 }[legendItem.datasetIndex];
+                if (pairedIndex !== undefined) {
+                  const hidden = !chart.getDatasetMeta(legendItem.datasetIndex).hidden;
+                  chart.getDatasetMeta(legendItem.datasetIndex).hidden = hidden;
+                  chart.getDatasetMeta(pairedIndex).hidden = hidden;
                   chart.update();
                 } else {
                   Chart.defaults.plugins.legend.onClick.call(legend, evt, legendItem, legend);
