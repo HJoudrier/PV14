@@ -79,18 +79,14 @@ const FILE_SPECS = [
   },
 ];
 
-// Fixed CAPEX unit prices (configuration constants, not user-editable)
-const CAPEX_PRICES = {
-  pvEurPerKwc: 1200,
-  bessCapacityEurPerKwh: 250,
-  bessPowerEurPerKw: 150,
-};
-
 // Default dimensioning parameters
 const DEFAULT_PARAMS = {
   pvCapacityKwp: 250,
+  pvPriceEurPerKwc: 1200,
   bessCapacityKwh: 400,
+  bessCapacityPriceEurPerKwh: 250,
   bessPowerKw: 150,
+  bessPowerPriceEurPerKw: 150,
   bessEfficiencyPercent: 92,
   bessMinSocPercent: 10,
   bessMaxSocPercent: 95,
@@ -1961,12 +1957,15 @@ function downloadSimulationResultsCsv() {
 function syncInputsWithParams() {
   setInputValue('param-pv-capacity', state.params.pvCapacityKwp);
   setText('val-pv-capacity', `${state.params.pvCapacityKwp} kWc`);
+  setInputValue('param-pv-price', state.params.pvPriceEurPerKwc);
 
   setInputValue('param-bess-capacity', state.params.bessCapacityKwh);
   setText('val-bess-capacity', `${state.params.bessCapacityKwh} kWh`);
+  setInputValue('param-bess-capacity-price', state.params.bessCapacityPriceEurPerKwh);
 
   setInputValue('param-bess-power', state.params.bessPowerKw);
   setText('val-bess-power', `${state.params.bessPowerKw} kW`);
+  setInputValue('param-bess-power-price', state.params.bessPowerPriceEurPerKw);
 
   setInputValue('param-bess-eff', state.params.bessEfficiencyPercent);
   setText('val-bess-eff', `${state.params.bessEfficiencyPercent}%`);
@@ -1989,8 +1988,11 @@ function syncInputsWithParams() {
 function bindInputListeners() {
   const bindings = [
     { id: 'param-pv-capacity', key: 'pvCapacityKwp', unit: 'kWc', isFloat: false },
+    { id: 'param-pv-price', key: 'pvPriceEurPerKwc', unit: '€/kWc', isFloat: false },
     { id: 'param-bess-capacity', key: 'bessCapacityKwh', unit: 'kWh', isFloat: false },
+    { id: 'param-bess-capacity-price', key: 'bessCapacityPriceEurPerKwh', unit: '€/kWh', isFloat: false },
     { id: 'param-bess-power', key: 'bessPowerKw', unit: 'kW', isFloat: false },
+    { id: 'param-bess-power-price', key: 'bessPowerPriceEurPerKw', unit: '€/kW', isFloat: false },
     { id: 'param-bess-eff', key: 'bessEfficiencyPercent', unit: '%', isFloat: false },
     { id: 'param-bess-initial-soc', key: 'bessInitialSocPercent', unit: '%', isFloat: false },
     { id: 'param-grid-contract', key: 'gridContractKw', unit: 'kW', isFloat: false },
@@ -2139,9 +2141,9 @@ function togglePlayback() {
  * Recomputes microgrid simulation and refreshes views
  */
 function computeCapex(params) {
-  const pv = params.pvCapacityKwp * CAPEX_PRICES.pvEurPerKwc;
-  const bessCapacity = params.bessCapacityKwh * CAPEX_PRICES.bessCapacityEurPerKwh;
-  const bessPower = params.bessPowerKw * CAPEX_PRICES.bessPowerEurPerKw;
+  const pv = params.pvCapacityKwp * params.pvPriceEurPerKwc;
+  const bessCapacity = params.bessCapacityKwh * params.bessCapacityPriceEurPerKwh;
+  const bessPower = params.bessPowerKw * params.bessPowerPriceEurPerKw;
   return { pv, bessCapacity, bessPower, total: pv + bessCapacity + bessPower };
 }
 
