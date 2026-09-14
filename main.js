@@ -1397,6 +1397,30 @@ const lockAxisWidth = (width) => (axis) => {
 // partagent exactement le même nombre de catégories sur l'axe des heures (pas de décalage).
 const dupLast = (arr) => [...arr, arr[arr.length - 1]];
 
+// Calcule des bornes min/max pour l'axe puissance (yPower) et l'axe prix (yPrice) de la
+// Courbe 1 telles que leurs deux "0" tombent exactement à la même hauteur (même fraction
+// verticale), même si la puissance a des valeurs négatives et le prix non.
+function computeAlignedZeroScales(powerValues, priceValues) {
+  const roundStep = 50;
+  const powerDataMin = Math.min(0, ...powerValues);
+  const powerDataMax = Math.max(0, ...powerValues);
+  const powerPad = 20;
+  const powerMin = powerDataMin < 0 ? Math.floor((powerDataMin - powerPad) / roundStep) * roundStep : 0;
+  let powerMax = Math.ceil((powerDataMax + powerPad) / roundStep) * roundStep;
+  if (powerMax <= powerMin) powerMax = powerMin + roundStep;
+
+  const priceDataMax = Math.max(0, ...priceValues);
+  const pricePad = 10;
+  let priceMax = Math.ceil((priceDataMax + pricePad) / roundStep) * roundStep;
+  if (priceMax <= 0) priceMax = roundStep;
+
+  // Fraction de la hauteur de l'axe puissance à laquelle se trouve le 0.
+  const zeroFraction = Math.min(0.98, Math.max(0, (0 - powerMin) / (powerMax - powerMin)));
+  const priceMin = zeroFraction === 0 ? 0 : (zeroFraction * priceMax) / (zeroFraction - 1);
+
+  return { powerMin, powerMax, priceMin, priceMax };
+}
+
 function renderPlanningCharts() {
   const planData = getPlanningHourlyData();
   const hoursExt = [...planData.hours, '24:00'];
@@ -1435,6 +1459,11 @@ function renderPlanningCharts() {
     const gridExt = dupLast(planData.gridPlan);
     const priceExt = dupLast(planData.gridPrice);
 
+    const alignedScales = computeAlignedZeroScales(
+      [...pvExt, ...loadCoveredNegExt, ...loadNegExt, ...gridExt],
+      priceExt
+    );
+
     // Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00",
     // le point dupliqué (24:00) reprenant le même intervalle que le dernier point réel.
     const tooltipHourRangeTitle = (items) => {
@@ -1452,6 +1481,10 @@ function renderPlanningCharts() {
       chart.data.datasets[2].data = loadNegExt;
       chart.data.datasets[3].data = gridExt;
       chart.data.datasets[4].data = priceExt;
+      chart.options.scales.yPower.min = alignedScales.powerMin;
+      chart.options.scales.yPower.max = alignedScales.powerMax;
+      chart.options.scales.yPrice.min = alignedScales.priceMin;
+      chart.options.scales.yPrice.max = alignedScales.priceMax;
       chart.update('none');
     } else {
       state.charts.planningPower = new Chart(ctxPower, {
@@ -1572,6 +1605,8 @@ function renderPlanningCharts() {
               type: 'linear',
               position: 'left',
               afterFit: lockAxisWidth(PLANNING_AXIS_WIDTH_LEFT),
+              min: alignedScales.powerMin,
+              max: alignedScales.powerMax,
               grid: { color: '#f1f5f9' },
               title: { display: true, text: 'Puissance (kW) — Producteur (+) / Consommateur (-)', color: '#475569', font: { size: 11 } },
               ticks: { color: '#64748b', callback: (v) => `${v} kW` },
@@ -1580,6 +1615,8 @@ function renderPlanningCharts() {
               type: 'linear',
               position: 'right',
               afterFit: lockAxisWidth(PLANNING_AXIS_WIDTH_RIGHT),
+              min: alignedScales.priceMin,
+              max: alignedScales.priceMax,
               grid: { drawOnChartArea: false },
               title: { display: true, text: 'Prix Spot (€/MWh)', color: '#d97706', font: { size: 11 } },
               ticks: { color: '#d97706', callback: (v) => `${v} €` },
