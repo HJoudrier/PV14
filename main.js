@@ -79,6 +79,13 @@ const FILE_SPECS = [
   },
 ];
 
+// Fixed CAPEX unit prices (configuration constants, not user-editable)
+const CAPEX_PRICES = {
+  pvEurPerKwc: 1200,
+  bessCapacityEurPerKwh: 250,
+  bessPowerEurPerKw: 150,
+};
+
 // Default dimensioning parameters
 const DEFAULT_PARAMS = {
   pvCapacityKwp: 250,
@@ -2131,6 +2138,22 @@ function togglePlayback() {
 /**
  * Recomputes microgrid simulation and refreshes views
  */
+function computeCapex(params) {
+  const pv = params.pvCapacityKwp * CAPEX_PRICES.pvEurPerKwc;
+  const bessCapacity = params.bessCapacityKwh * CAPEX_PRICES.bessCapacityEurPerKwh;
+  const bessPower = params.bessPowerKw * CAPEX_PRICES.bessPowerEurPerKw;
+  return { pv, bessCapacity, bessPower, total: pv + bessCapacity + bessPower };
+}
+
+function formatEur(value) {
+  return `${Math.round(value).toLocaleString('fr-FR')} €`;
+}
+
+function updateCapexBadge() {
+  const capex = computeCapex(state.params);
+  setText('dimensioning-capex-badge', `💰 CAPEX : ${formatEur(capex.total)}`);
+}
+
 function recomputeAndRender() {
   state.simulationResult = runMicrogridSimulation(state.files, state.params);
   updateKpiCards(state.simulationResult.kpis);
@@ -2138,6 +2161,7 @@ function recomputeAndRender() {
   renderPlanningCharts();
   initCharts();
   renderFilesTable();
+  updateCapexBadge();
 }
 
 /**
