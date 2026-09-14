@@ -1500,7 +1500,34 @@ function renderPlanningCharts() {
           plugins: {
             legend: {
               position: 'top',
-              labels: { boxWidth: 12, font: { size: 11 }, color: '#475569' },
+              labels: {
+                boxWidth: 12,
+                font: { size: 11 },
+                color: '#475569',
+                // "Charge fournie" (index 1) et "Charge demandée" (index 2) sont deux
+                // datasets distincts (aire remplie + contour) mais une seule et même
+                // grandeur physique : on les fusionne sous une unique légende "Charge (kW)".
+                generateLabels: (chart) => {
+                  const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                  return items
+                    .filter((item) => item.datasetIndex !== 2)
+                    .map((item) => {
+                      if (item.datasetIndex === 1) item.text = 'Charge (kW)';
+                      return item;
+                    });
+                },
+              },
+              onClick: (evt, legendItem, legend) => {
+                const chart = legend.chart;
+                if (legendItem.datasetIndex === 1) {
+                  const hidden = !chart.getDatasetMeta(1).hidden;
+                  chart.getDatasetMeta(1).hidden = hidden;
+                  chart.getDatasetMeta(2).hidden = hidden;
+                  chart.update();
+                } else {
+                  Chart.defaults.plugins.legend.onClick.call(legend, evt, legendItem, legend);
+                }
+              },
             },
             tooltip: {
               callbacks: {
