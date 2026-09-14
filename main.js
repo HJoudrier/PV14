@@ -1591,8 +1591,8 @@ function renderPlanningCharts() {
                   return items
                     .filter((item) => item.datasetIndex !== 2 && item.datasetIndex !== 4)
                     .map((item) => {
-                      if (item.datasetIndex === 1) item.text = 'Charge (kW)';
-                      if (item.datasetIndex === 3) item.text = 'Réseau (kW)';
+                      if (item.datasetIndex === 1) item.text = 'Charge';
+                      if (item.datasetIndex === 3) item.text = 'Réseau';
                       return item;
                     });
                 },
