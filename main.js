@@ -1179,6 +1179,9 @@ function getPlanningHourlyData() {
   const deficit = [];
   const gridPrice = [];
   const bessPlan = [];
+  const bessPlanReq = [];
+  const bessPowerLimited = [];
+  const bessSocLimited = [];
   const socCurve = [];
 
   let currentSoc = state.params.bessInitialSocPercent || 45;
@@ -1210,22 +1213,31 @@ function getPlanningHourlyData() {
     // 2. BESS command evaluation & physical constraints
     const pReq = state.planningBess[h] !== undefined ? state.planningBess[h] : 0;
     let pEff = 0;
+    let powerLimited = false;
+    let socLimited = false;
 
     if (pReq > 0) {
       // Discharge (upwards): limited by available stored energy
       const availKwh = Math.max(0, ((currentSoc - minSoc) / 100) * capacityKwh * eff);
       pEff = Math.max(0, Math.min(pReq, bessPowerMax, availKwh));
+      powerLimited = pReq > bessPowerMax;
+      socLimited = pReq > availKwh;
       currentSoc = Math.max(minSoc, currentSoc - (pEff / eff / capacityKwh) * 100);
     } else if (pReq < 0) {
       // Charge (downwards): limited by available capacity room
       const roomKwh = Math.max(0, ((maxSoc - currentSoc) / 100) * capacityKwh / eff);
       pEff = -Math.max(0, Math.min(Math.abs(pReq), bessPowerMax, roomKwh));
+      powerLimited = Math.abs(pReq) > bessPowerMax;
+      socLimited = Math.abs(pReq) > roomKwh;
       currentSoc = Math.min(maxSoc, currentSoc + (Math.abs(pEff) * eff / capacityKwh) * 100);
     } else {
       pEff = 0;
     }
 
     bessPlan.push(Number(pEff.toFixed(1)));
+    bessPlanReq.push(Number(pReq.toFixed(1)));
+    bessPowerLimited.push(powerLimited);
+    bessSocLimited.push(socLimited);
     socCurve.push(Number(currentSoc.toFixed(1)));
 
     // 3. Electrical balance: PV + BESS + GRID = LOAD
@@ -1274,6 +1286,9 @@ function getPlanningHourlyData() {
     deficit,
     gridPrice,
     bessPlan,
+    bessPlanReq,
+    bessPowerLimited,
+    bessSocLimited,
     socCurve,
     totalDeficitKwh: Number(totalDeficitKwh.toFixed(1)),
     finalSoc: Number(currentSoc.toFixed(1)),
@@ -1309,6 +1324,23 @@ function updatePlanningControllerUI(planData) {
     if (document.activeElement !== powerInput) {
       powerInput.value = currentPower;
     }
+  }
+
+  // Alertes : consigne réduite car hors limite de SoC et/ou de puissance onduleur.
+  const alertsEl = document.getElementById('planning-hour-alerts');
+  if (alertsEl && planData) {
+    const badges = [];
+    if (planData.bessSocLimited && planData.bessSocLimited[h]) {
+      badges.push(
+        '<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">⚠️ SoC hors limites</span>'
+      );
+    }
+    if (planData.bessPowerLimited && planData.bessPowerLimited[h]) {
+      badges.push(
+        '<span class="px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">⚠️ Puissance hors limite</span>'
+      );
+    }
+    alertsEl.innerHTML = badges.join('');
   }
 }
 

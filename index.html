@@ -497,20 +497,12 @@
                 </button>
               </div>
 
-              <!-- Statut et valeurs de SoC -->
-              <div class="flex items-center gap-3">
-                <div class="text-center">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC initial</span>
-                  <span id="planning-hour-soc-initial-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
-                    45.0%
-                  </span>
-                </div>
-                <div class="text-center">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC résultant</span>
-                  <span id="planning-hour-soc-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
-                    65.0%
-                  </span>
-                </div>
+              <!-- SoC précédent (avant l'heure sélectionnée) -->
+              <div class="text-center">
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC précédent</span>
+                <span id="planning-hour-soc-initial-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
+                  45.0%
+                </span>
               </div>
 
               <!-- Consigne BESS : champ numérique avec boutons +/- -->
@@ -553,6 +545,17 @@
                   ⏸ 0 kW
                 </button>
               </div>
+
+              <!-- SoC suivant (résultant de l'heure sélectionnée) -->
+              <div class="text-center">
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC suivant</span>
+                <span id="planning-hour-soc-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
+                  65.0%
+                </span>
+              </div>
+
+              <!-- Alertes : SoC ou puissance hors limites pour l'heure sélectionnée -->
+              <div id="planning-hour-alerts" class="flex items-center gap-1.5"></div>
             </div>
 
             
