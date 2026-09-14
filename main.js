@@ -1179,6 +1179,9 @@ function getPlanningHourlyData() {
   const deficit = [];
   const gridPrice = [];
   const bessPlan = [];
+  const bessPlanReq = [];
+  const bessPowerLimited = [];
+  const bessSocLimited = [];
   const socCurve = [];
 
   let currentSoc = state.params.bessInitialSocPercent || 45;
@@ -1210,22 +1213,31 @@ function getPlanningHourlyData() {
     // 2. BESS command evaluation & physical constraints
     const pReq = state.planningBess[h] !== undefined ? state.planningBess[h] : 0;
     let pEff = 0;
+    let powerLimited = false;
+    let socLimited = false;
 
     if (pReq > 0) {
       // Discharge (upwards): limited by available stored energy
       const availKwh = Math.max(0, ((currentSoc - minSoc) / 100) * capacityKwh * eff);
       pEff = Math.max(0, Math.min(pReq, bessPowerMax, availKwh));
+      powerLimited = pReq > bessPowerMax;
+      socLimited = pReq > availKwh;
       currentSoc = Math.max(minSoc, currentSoc - (pEff / eff / capacityKwh) * 100);
     } else if (pReq < 0) {
       // Charge (downwards): limited by available capacity room
       const roomKwh = Math.max(0, ((maxSoc - currentSoc) / 100) * capacityKwh / eff);
       pEff = -Math.max(0, Math.min(Math.abs(pReq), bessPowerMax, roomKwh));
+      powerLimited = Math.abs(pReq) > bessPowerMax;
+      socLimited = Math.abs(pReq) > roomKwh;
       currentSoc = Math.min(maxSoc, currentSoc + (Math.abs(pEff) * eff / capacityKwh) * 100);
     } else {
       pEff = 0;
     }
 
     bessPlan.push(Number(pEff.toFixed(1)));
+    bessPlanReq.push(Number(pReq.toFixed(1)));
+    bessPowerLimited.push(powerLimited);
+    bessSocLimited.push(socLimited);
     socCurve.push(Number(currentSoc.toFixed(1)));
 
     // 3. Electrical balance: PV + BESS + GRID = LOAD
@@ -1274,6 +1286,9 @@ function getPlanningHourlyData() {
     deficit,
     gridPrice,
     bessPlan,
+    bessPlanReq,
+    bessPowerLimited,
+    bessSocLimited,
     socCurve,
     totalDeficitKwh: Number(totalDeficitKwh.toFixed(1)),
     finalSoc: Number(currentSoc.toFixed(1)),
@@ -1403,6 +1418,14 @@ const hiddenHourBarAxis = (hours) => ({
   display: false,
 });
 
+// Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00".
+const tooltipHourRangeTitle = (items) => {
+  const startH = items[0].dataIndex;
+  const startStr = `${String(startH).padStart(2, '0')}:00`;
+  const endStr = `${String(startH + 1).padStart(2, '0')}:00`;
+  return `${startStr} - ${endStr}`;
+};
+
 // Calcule des bornes min/max pour l'axe puissance (yPower) et l'axe prix (yPrice) de la
 // Courbe 1 telles que leurs deux "0" tombent exactement à la même hauteur (même fraction
 // verticale), même si la puissance a des valeurs négatives et le prix non.
@@ -1472,14 +1495,6 @@ function renderPlanningCharts() {
       [...pvVals, ...loadCoveredNegVals, ...loadNegVals, ...gridVals, ...gridRawVals],
       planData.gridPrice
     );
-
-    // Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00".
-    const tooltipHourRangeTitle = (items) => {
-      const startH = items[0].dataIndex;
-      const startStr = `${String(startH).padStart(2, '0')}:00`;
-      const endStr = `${String(startH + 1).padStart(2, '0')}:00`;
-      return `${startStr} - ${endStr}`;
-    };
 
     if (state.charts.planningPower) {
       const chart = state.charts.planningPower;
@@ -1678,6 +1693,30 @@ function renderPlanningCharts() {
     // résultant à la fin de l'heure (i-1), donc le dernier point (24:00) = SoC final réel.
     const socBoundariesExt = [state.params.bessInitialSocPercent, ...planData.socCurve];
 
+    // Détail de l'infobulle de la barre BESS : reconstruit à chaque rendu pour référencer
+    // le planData courant (sans quoi le callback figé à la création verrait des données
+    // obsolètes après une mise à jour des paramètres).
+    const bessBarTooltipLabel = (ctx) => {
+      const h = ctx.dataIndex;
+      const socBefore = socBoundariesExt[h];
+      const socAfter = socBoundariesExt[h + 1];
+      const pReq = planData.bessPlanReq[h];
+      const pEff = ctx.raw;
+      const mode = pReq > 0 ? 'Décharge' : pReq < 0 ? 'Charge' : 'Veille';
+      const lines = [
+        ` SoC précédent : ${socBefore}%`,
+        ` Consigne : ${pReq > 0 ? '+' : ''}${pReq} kW (${mode})`,
+        ` SoC suivant : ${socAfter}%`,
+      ];
+      if (planData.bessSocLimited[h]) {
+        lines.push(` ⚠️ SoC hors limites : consigne réduite à ${pEff} kW (batterie pleine/vide)`);
+      }
+      if (planData.bessPowerLimited[h]) {
+        lines.push(` ⚠️ Puissance hors limite onduleur : consigne réduite à ${pEff} kW`);
+      }
+      return lines;
+    };
+
     if (state.charts.planningBess) {
       const chart = state.charts.planningBess;
       chart.data.labels = hoursExt;
@@ -1685,6 +1724,7 @@ function renderPlanningCharts() {
       chart.data.datasets[1].data = socBoundariesExt;
       chart.options.scales.yPower.suggestedMin = -pMax;
       chart.options.scales.yPower.suggestedMax = pMax;
+      chart.options.plugins.tooltip.callbacks.label = bessBarTooltipLabel;
       chart.update('none');
     } else {
       state.charts.planningBess = new Chart(ctxBess, {
@@ -1753,15 +1793,12 @@ function renderPlanningCharts() {
             },
             tooltip: {
               callbacks: {
-                label: (ctx) => {
-                  if (ctx.dataset.yAxisID === 'ySoC') {
-                    return ` SoC Batterie: ${ctx.raw}%`;
-                  }
-                  const v = ctx.raw;
-                  const mode = v > 0 ? 'Décharge' : v < 0 ? 'Charge' : 'Veille';
-                  return ` BESS: ${v > 0 ? '+' : ''}${v} kW (${mode})`;
-                },
+                title: tooltipHourRangeTitle,
+                // On ne garde que la barre BESS (index0) : le SoC précédent/suivant est
+                // reconstruit à la main pour respecter l'ordre demandé.
+                label: bessBarTooltipLabel,
               },
+              filter: (item) => item.datasetIndex === 0,
             },
           },
           scales: {
