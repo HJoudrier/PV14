@@ -435,8 +435,7 @@
             </span>
             <div>
               <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                Planification
-                <span class="px-2 py-0.5 text-[11px] font-semibold text-indigo-700 bg-indigo-100 rounded-full">Pilotage & Équilibre 24h</span>
+                Planification - Équilibre 24h
               </h2>
               <p class="text-xs text-slate-500">
                 Plan de production / consommation + Pilotage interactif BESS
@@ -461,99 +460,17 @@
         <div class="p-4 space-y-6">
           <!-- COURBE 1 : Plan de production / consommation -->
           <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs" id="panel-planning-chart1">
-            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>Plan de production / consommation</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  PV &bull; Charge &bull; Réseau — producteurs (+) vers le haut, consommateurs (-) vers le bas
-                </p>
-              </div>
-              <div class="flex items-center gap-2 text-xs">
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-amber-400"></span> PV
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-rose-500"></span> Charge
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-blue-600"></span> Réseau
-                </span>
-              </div>
-            </div>
-
-            <!-- Canvas Courbe 1 -->
+		  
+			<!-- Canvas Courbe 1 -->
             <div class="p-3.5 h-[340px] relative">
               <canvas id="chart-planning-power"></canvas>
             </div>
 
-            <!-- Guide explicatif physique Courbe 1 -->
-            <div class="px-4 py-2.5 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
-              <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>
-                  <strong class="text-amber-700">PV :</strong> producteur, toujours positif (vers le haut).
-                </span>
-                <span>
-                  <strong class="text-rose-700">Charge :</strong> consommatrice, toujours négative (vers le bas).
-                </span>
-                <span>
-                  <strong class="text-blue-700">Réseau :</strong> positif quand on soutire, négatif quand on injecte.
-                </span>
-              </div>
+			<!-- Canvas Courbe 2 -->
+            <div class="p-3.5 h-[320px] relative">
+              <canvas id="chart-planning-bess"></canvas>
             </div>
-          </div>
-
-          <!-- COURBE 2 : Pilotage interactif BESS & SoC -->
-          <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs" id="panel-planning-chart2">
-            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>Pilotage interactif BESS</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Histogramme de puissance batterie (<strong>En haut = Décharge</strong>, <strong>En bas = Charge</strong>) & Niveau de SoC (%)
-                </p>
-              </div>
-
-              <!-- Profils rapides d'optimisation -->
-              <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                <span class="text-slate-400 text-[11px] mr-1">Profils :</span>
-                <button
-                  type="button"
-                  id="btn-profile-pv"
-                  class="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-medium transition-colors"
-                  title="Charger lors du surplus PV et décharger lors de la pointe de consommation"
-                >
-                  ☀️ Autoconsommation
-                </button>
-                <button
-                  type="button"
-                  id="btn-profile-arbitrage"
-                  class="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-medium transition-colors"
-                  title="Charger aux heures de prix bas et décharger aux heures de prix élevé"
-                >
-                  💶 Arbitrage Spot
-                </button>
-                <button
-                  type="button"
-                  id="btn-profile-default"
-                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
-                  title="Rétablir le profil initial de prévision"
-                >
-                  🔄 Initial
-                </button>
-                <button
-                  type="button"
-                  id="btn-profile-zero"
-                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
-                  title="Mettre toutes les consignes batterie à 0 kW"
-                >
-                  🧹 0 kW
-                </button>
-              </div>
-            </div>
-
+						
             <!-- Barre de contrôle interactif de la barre sélectionnée -->
             <div class="px-4 py-3 bg-slate-100/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3" id="planning-bar-controller">
               <!-- Sélecteur d'heure -->
@@ -657,10 +574,7 @@
               </div>
             </div>
 
-            <!-- Canvas Courbe 2 -->
-            <div class="p-3.5 h-[320px] relative">
-              <canvas id="chart-planning-bess"></canvas>
-            </div>
+            
 
             <!-- Légende & instructions sous Courbe 2 -->
             <div class="px-4 py-2 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
