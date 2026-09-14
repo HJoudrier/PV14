@@ -1389,8 +1389,8 @@ function setupPlanningCanvasDrag(canvas) {
 // Largeurs d'axe fixes (en pixels) partagées par les deux graphiques de planification,
 // pour que leurs zones de tracé démarrent/finissent exactement au même endroit et que
 // les pas horaires restent alignés verticalement entre les deux graphiques empilés.
-const PLANNING_AXIS_WIDTH_LEFT = 54;
-const PLANNING_AXIS_WIDTH_RIGHT = 54;
+const PLANNING_AXIS_WIDTH_LEFT = 78;
+const PLANNING_AXIS_WIDTH_RIGHT = 78;
 const lockAxisWidth = (width) => (axis) => {
   axis.width = width;
 };
