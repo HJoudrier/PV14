@@ -1395,24 +1395,27 @@ const lockAxisWidth = (width) => (axis) => {
   axis.width = width;
 };
 
-// Le dernier point (23:00) est dupliqué sur 24:00 pour que l'escalier / l'histogramme
-// aille jusqu'à la fin de la journée, et pour que les deux graphiques de planification
-// partagent exactement le même nombre de catégories sur l'axe des heures (pas de décalage).
-const dupLast = (arr) => [...arr, arr[arr.length - 1]];
+// Courbe 1 n'a de valeur réelle que pour les 24 heures (00:00..23:00) : on ajoute un
+// point 24:00 à `null` (au lieu de dupliquer la dernière valeur) uniquement pour que
+// l'axe des heures ait le même nombre de catégories que la Courbe 2 (pas de décalage
+// pixel), sans dessiner de segment/barre fantôme sur ce dernier pas de temps.
+const padNull = (arr) => [...arr, null];
 
 // Calcule des bornes min/max pour l'axe puissance (yPower) et l'axe prix (yPrice) de la
 // Courbe 1 telles que leurs deux "0" tombent exactement à la même hauteur (même fraction
 // verticale), même si la puissance a des valeurs négatives et le prix non.
 function computeAlignedZeroScales(powerValues, priceValues) {
   const roundStep = 50;
-  const powerDataMin = Math.min(0, ...powerValues);
-  const powerDataMax = Math.max(0, ...powerValues);
+  const powerNums = powerValues.filter((v) => v != null);
+  const priceNums = priceValues.filter((v) => v != null);
+  const powerDataMin = Math.min(0, ...powerNums);
+  const powerDataMax = Math.max(0, ...powerNums);
   const powerPad = 20;
   const powerMin = powerDataMin < 0 ? Math.floor((powerDataMin - powerPad) / roundStep) * roundStep : 0;
   let powerMax = Math.ceil((powerDataMax + powerPad) / roundStep) * roundStep;
   if (powerMax <= powerMin) powerMax = powerMin + roundStep;
 
-  const priceDataMax = Math.max(0, ...priceValues);
+  const priceDataMax = Math.max(0, ...priceNums);
   const pricePad = 10;
   let priceMax = Math.ceil((priceDataMax + pricePad) / roundStep) * roundStep;
   if (priceMax <= 0) priceMax = roundStep;
@@ -1456,12 +1459,12 @@ function renderPlanningCharts() {
     const loadNeg = planData.loadPlan.map((v) => -v);
     const loadCoveredNeg = planData.loadCovered.map((v) => -v);
 
-    const pvExt = dupLast(planData.pvPlan);
-    const loadCoveredNegExt = dupLast(loadCoveredNeg);
-    const loadNegExt = dupLast(loadNeg);
-    const gridExt = dupLast(planData.gridPlan);
-    const gridRawExt = dupLast(planData.gridPlanRaw);
-    const priceExt = dupLast(planData.gridPrice);
+    const pvExt = padNull(planData.pvPlan);
+    const loadCoveredNegExt = padNull(loadCoveredNeg);
+    const loadNegExt = padNull(loadNeg);
+    const gridExt = padNull(planData.gridPlan);
+    const gridRawExt = padNull(planData.gridPlanRaw);
+    const priceExt = padNull(planData.gridPrice);
 
     const alignedScales = computeAlignedZeroScales(
       [...pvExt, ...loadCoveredNegExt, ...loadNegExt, ...gridExt, ...gridRawExt],
