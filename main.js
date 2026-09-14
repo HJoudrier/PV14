@@ -1,32 +1,18 @@
-import Papa from 'papaparse';
-import {
-  Chart,
-  LineController,
-  BarController,
-  LineElement,
-  BarElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
+// Papa and Chart are loaded globally via vendor/papaparse.min.js and vendor/chart.umd.min.js
 
 // Register Chart.js components
 Chart.register(
-  LineController,
-  BarController,
-  LineElement,
-  BarElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
+  Chart.LineController,
+  Chart.BarController,
+  Chart.LineElement,
+  Chart.BarElement,
+  Chart.PointElement,
+  Chart.LinearScale,
+  Chart.CategoryScale,
+  Chart.Title,
+  Chart.Tooltip,
+  Chart.Legend,
+  Chart.Filler
 );
 
 // File specifications as defined in user prompt

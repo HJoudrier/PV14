@@ -10,11 +10,15 @@ View your app in AI Studio: https://ai.studio/apps/805426b4-ae9b-4626-b18a-9557e
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+No build step, no package manager, no dependencies to install. The app is
+plain HTML, CSS and JavaScript, with Chart.js and PapaParse vendored
+locally in [`vendor/`](vendor).
 
+Just open [`index.html`](index.html) directly in a browser, or serve the
+folder with any static file server, e.g.:
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```
+python3 -m http.server 8000
+```
+
+then visit `http://localhost:8000/`.
