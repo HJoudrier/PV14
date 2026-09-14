@@ -1493,7 +1493,7 @@ function renderPlanningCharts() {
           labels: hoursExt,
           datasets: [
             {
-              label: 'PV (kW)',
+              label: 'PV ',
               data: pvExt,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245, 158, 11, 0.16)',
@@ -1506,7 +1506,7 @@ function renderPlanningCharts() {
             {
               // Charge réellement fournie : suit la demande quand tout est couvert,
               // sinon reste entre 0 et la courbe de demande (déficit de puissance).
-              label: 'Charge fournie (kW)',
+              label: 'Charge fournie ',
               data: loadCoveredNegExt,
               borderColor: '#e11d48',
               backgroundColor: 'rgba(225, 29, 72, 0.28)',
@@ -1517,7 +1517,7 @@ function renderPlanningCharts() {
               yAxisID: 'yPower',
             },
             {
-              label: 'Charge demandée (kW)',
+              label: 'Charge demandée ',
               data: loadNegExt,
               borderColor: '#e11d48',
               borderWidth: 2,
@@ -1528,7 +1528,7 @@ function renderPlanningCharts() {
               yAxisID: 'yPower',
             },
             {
-              label: 'Réseau (kW)',
+              label: 'Réseau ',
               data: gridExt,
               borderColor: '#2563eb',
               backgroundColor: 'rgba(37, 99, 235, 0.16)',
@@ -1540,7 +1540,7 @@ function renderPlanningCharts() {
             },
             {
               type: 'bar',
-              label: 'Prix Réseau (€/MWh)',
+              label: 'Prix Réseau ',
               data: priceExt,
               backgroundColor: 'rgba(217, 119, 6, 0.35)',
               borderColor: '#d97706',
