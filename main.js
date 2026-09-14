@@ -1413,23 +1413,41 @@ function renderPlanningCharts() {
     const loadNeg = planData.loadPlan.map((v) => -v);
     const loadCoveredNeg = planData.loadCovered.map((v) => -v);
 
+    // Le dernier point (23:00) est dupliqué sur 24:00 pour que l'escalier aille
+    // jusqu'à la fin de la journée au lieu de s'arrêter à 23h.
+    const dupLast = (arr) => [...arr, arr[arr.length - 1]];
+    const hoursExt = [...planData.hours, '24:00'];
+    const pvExt = dupLast(planData.pvPlan);
+    const loadCoveredNegExt = dupLast(loadCoveredNeg);
+    const loadNegExt = dupLast(loadNeg);
+    const gridExt = dupLast(planData.gridPlan);
+
+    // Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00",
+    // le point dupliqué (24:00) reprenant le même intervalle que le dernier point réel.
+    const tooltipHourRangeTitle = (items) => {
+      const startH = Math.min(items[0].dataIndex, 23);
+      const startStr = `${String(startH).padStart(2, '0')}:00`;
+      const endStr = `${String(startH + 1).padStart(2, '0')}:00`;
+      return `${startStr} - ${endStr}`;
+    };
+
     if (state.charts.planningPower) {
       const chart = state.charts.planningPower;
-      chart.data.labels = planData.hours;
-      chart.data.datasets[0].data = planData.pvPlan;
-      chart.data.datasets[1].data = loadCoveredNeg;
-      chart.data.datasets[2].data = loadNeg;
-      chart.data.datasets[3].data = planData.gridPlan;
+      chart.data.labels = hoursExt;
+      chart.data.datasets[0].data = pvExt;
+      chart.data.datasets[1].data = loadCoveredNegExt;
+      chart.data.datasets[2].data = loadNegExt;
+      chart.data.datasets[3].data = gridExt;
       chart.update('none');
     } else {
       state.charts.planningPower = new Chart(ctxPower, {
         type: 'line',
         data: {
-          labels: planData.hours,
+          labels: hoursExt,
           datasets: [
             {
               label: 'PV (kW)',
-              data: planData.pvPlan,
+              data: pvExt,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245, 158, 11, 0.16)',
               borderWidth: 2,
@@ -1442,7 +1460,7 @@ function renderPlanningCharts() {
               // Charge réellement fournie : suit la demande quand tout est couvert,
               // sinon reste entre 0 et la courbe de demande (déficit de puissance).
               label: 'Charge fournie (kW)',
-              data: loadCoveredNeg,
+              data: loadCoveredNegExt,
               borderColor: '#e11d48',
               backgroundColor: 'rgba(225, 29, 72, 0.28)',
               borderWidth: 1,
@@ -1453,7 +1471,7 @@ function renderPlanningCharts() {
             },
             {
               label: 'Charge demandée (kW)',
-              data: loadNeg,
+              data: loadNegExt,
               borderColor: '#e11d48',
               borderWidth: 2,
               borderDash: [5, 3],
@@ -1464,7 +1482,7 @@ function renderPlanningCharts() {
             },
             {
               label: 'Réseau (kW)',
-              data: planData.gridPlan,
+              data: gridExt,
               borderColor: '#2563eb',
               backgroundColor: 'rgba(37, 99, 235, 0.16)',
               borderWidth: 2,
@@ -1486,6 +1504,7 @@ function renderPlanningCharts() {
             },
             tooltip: {
               callbacks: {
+                title: tooltipHourRangeTitle,
                 label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw} kW`,
               },
             },
