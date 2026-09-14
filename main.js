@@ -1655,14 +1655,18 @@ function renderPlanningCharts() {
   if (ctxBess) {
     const pMax = Math.max(state.params.bessPowerKw * 1.15, 50);
 
-    const bessPlanExt = dupLast(planData.bessPlan);
-    const socCurveExt = dupLast(planData.socCurve);
+    // Il n'y a pas d'heure 24 à piloter : pas de barre fantôme sur le dernier point.
+    const bessPlanExt = [...planData.bessPlan, null];
+    // Le SoC doit tomber sur les heures entières, entre deux barres : le point 0 (00:00)
+    // est le SoC initial (avant toute opération), et le point i (i = 1..24) est le SoC
+    // résultant à la fin de l'heure (i-1), donc le dernier point (24:00) = SoC final réel.
+    const socBoundariesExt = [state.params.bessInitialSocPercent, ...planData.socCurve];
 
     if (state.charts.planningBess) {
       const chart = state.charts.planningBess;
       chart.data.labels = hoursExt;
       chart.data.datasets[0].data = bessPlanExt;
-      chart.data.datasets[1].data = socCurveExt;
+      chart.data.datasets[1].data = socBoundariesExt;
       chart.options.scales.yPower.suggestedMin = -pMax;
       chart.options.scales.yPower.suggestedMax = pMax;
       chart.update('none');
@@ -1697,14 +1701,16 @@ function renderPlanningCharts() {
             {
               type: 'line',
               label: 'Niveau de SoC (%)',
-              data: socCurveExt,
+              data: socBoundariesExt,
               yAxisID: 'ySoC',
               borderColor: '#6366f1',
               backgroundColor: 'rgba(99, 102, 241, 0.08)',
               borderWidth: 2.5,
-              tension: 0.25,
-              pointRadius: (ctx) => (ctx.dataIndex === state.selectedPlanningHour ? 6 : 3),
-              pointBackgroundColor: (ctx) => (ctx.dataIndex === state.selectedPlanningHour ? '#4338ca' : '#6366f1'),
+              tension: 0,
+              // Le point mis en avant est celui qui tombe juste après l'heure sélectionnée,
+              // c'est-à-dire le SoC résultant de l'action sur cette heure.
+              pointRadius: (ctx) => (ctx.dataIndex === state.selectedPlanningHour + 1 ? 6 : 3),
+              pointBackgroundColor: (ctx) => (ctx.dataIndex === state.selectedPlanningHour + 1 ? '#4338ca' : '#6366f1'),
               pointBorderColor: '#ffffff',
               pointBorderWidth: 1.5,
             },
