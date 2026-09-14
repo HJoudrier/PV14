@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Microgrid Manager - Pilotage & Dimensionnement</title>
+    <meta name="description" content="Application locale de pilotage et dimensionnement de micro-réseau électrique (PV, BESS, Charge, Réseau) avec comparaison prévisions vs mesures multi-résolutions." />
+    <meta property="og:title" content="Microgrid Manager" />
+    <meta property="og:description" content="Application locale de pilotage et dimensionnement de micro-réseau électrique." />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="/src/index.css" />
+  </head>
+  <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs" id="app-header">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm">
+                ⚡
+              </span>
+              <h1 class="text-xl font-bold tracking-tight text-slate-900" id="main-title">
+                Microgrid Manager
+              </h1>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                100% Local (Sans serveur)
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Pilotage & dimensionnement multi-actifs (PV, BESS, Charge, Réseau) &bull; Comparatif Prévisions vs Réalisé
+            </p>
+          </div>
+
+          <!-- Top Toolbar Action Buttons -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              id="btn-reset-sample"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
+              title="Restaurer le jeu de données d'exemple standard"
+            >
+              🔄 Données d'exemple
+            </button>
+            <button
+              id="btn-download-all-samples"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors"
+              title="Télécharger les gabarits des 6 fichiers CSV"
+            >
+              📥 Gabarits CSV (x6)
+            </button>
+            <button
+              id="btn-export-results"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors"
+              title="Exporter les résultats simulés à la minute"
+            >
+              📊 Exporter Bilan (1 min)
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" id="app-main">
+      <!-- Alerts -->
+      <div id="alert-curtailment" class="hidden p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+        <span class="text-base">⚠️</span>
+        <span id="alert-curtailment-text">Avertissement : Écrêtement de production PV en cours.</span>
+      </div>
+      <div id="alert-unmet" class="hidden p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+        <span class="text-base">🚨</span>
+        <span id="alert-unmet-text">Avertissement : Dépassement de la puissance contractuelle réseau.</span>
+      </div>
+
+      <!-- 1. PARTIE DIMENSIONNEMENT (En ligne, sans slider, sans sélection de stratégie) -->
+      <section class="card-panel bg-white shadow-xs" id="dimensioning-section">
+        <div class="card-panel-header flex items-center justify-between py-3 px-4 bg-slate-50/80 border-b border-slate-200">
+          <div class="flex items-center gap-2.5">
+            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm">
+              📐
+            </span>
+            <div>
+              <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                Dimensionnement du Micro-Réseau
+                <span class="px-2 py-0.5 text-[11px] font-semibold text-blue-700 bg-blue-100 rounded-full">Saisie directe & instantanée</span>
+              </h2>
+              <p class="text-xs text-slate-500">
+                Puissance PV, Capacité Batterie, Puissance Batterie et Puissance de Raccordement
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 overflow-x-auto">
+          <!-- Les 4 Blocs strictement en ligne -->
+          <div class="grid grid-cols-4 gap-3.5 min-w-[760px]" id="dimensioning-blocks-row">
+
+            <!-- 1. Puissance PV -->
+            <div class="p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 flex flex-col justify-between" id="card-dim-pv">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-base">☀️</span>
+                  <span class="text-xs font-bold text-amber-900 uppercase tracking-wider">PV</span>
+                </div>
+                <p class="text-xs font-medium text-slate-600 mt-1">Puissance installée</p>
+              </div>
+
+              <div class="mt-3">
+                <div class="flex items-center rounded-lg border border-amber-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-amber-500">
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-pv-capacity"
+                    data-step="-10"
+                    title="Diminuer de 10 kWc"
+                  >
+                    &minus;
+                  </button>
+                  <input
+                    type="number"
+                    id="param-pv-capacity"
+                    min="0"
+                    max="5000"
+                    step="10"
+                    value="250"
+                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                  />
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-pv-capacity"
+                    data-step="10"
+                    title="Augmenter de 10 kWc"
+                  >
+                    +
+                  </button>
+                  <span class="pr-2.5 text-xs font-bold font-mono text-amber-700 select-none">kWc</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Capacité Batterie -->
+            <div class="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col justify-between" id="card-dim-bess-cap">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-base">🔋</span>
+                  <span class="text-xs font-bold text-emerald-900 uppercase tracking-wider">BESS</span>
+                </div>
+                <p class="text-xs font-medium text-slate-600 mt-1">Capacité batterie</p>
+              </div>
+
+              <div class="mt-3">
+                <div class="flex items-center rounded-lg border border-emerald-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500">
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-bess-capacity"
+                    data-step="-20"
+                    title="Diminuer de 20 kWh"
+                  >
+                    &minus;
+                  </button>
+                  <input
+                    type="number"
+                    id="param-bess-capacity"
+                    min="0"
+                    max="10000"
+                    step="20"
+                    value="400"
+                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                  />
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-bess-capacity"
+                    data-step="20"
+                    title="Augmenter de 20 kWh"
+                  >
+                    +
+                  </button>
+                  <span class="pr-2.5 text-xs font-bold font-mono text-emerald-700 select-none">kWh</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Puissance Batterie -->
+            <div class="p-3.5 rounded-xl border border-teal-200 bg-teal-50/40 flex flex-col justify-between" id="card-dim-bess-pwr">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-base">⚡</span>
+                  <span class="text-xs font-bold text-teal-900 uppercase tracking-wider">BESS</span>
+                </div>
+                <p class="text-xs font-medium text-slate-600 mt-1">Puissance onduleur</p>
+              </div>
+
+              <div class="mt-3">
+                <div class="flex items-center rounded-lg border border-teal-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-teal-500">
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-bess-power"
+                    data-step="-10"
+                    title="Diminuer de 10 kW"
+                  >
+                    &minus;
+                  </button>
+                  <input
+                    type="number"
+                    id="param-bess-power"
+                    min="0"
+                    max="5000"
+                    step="10"
+                    value="150"
+                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                  />
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-bess-power"
+                    data-step="10"
+                    title="Augmenter de 10 kW"
+                  >
+                    +
+                  </button>
+                  <span class="pr-2.5 text-xs font-bold font-mono text-teal-700 select-none">kW</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Puissance Raccordement -->
+            <div class="p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 flex flex-col justify-between" id="card-dim-grid-contract">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-base">🌐</span>
+                  <span class="text-xs font-bold text-blue-900 uppercase tracking-wider">GRID</span>
+                </div>
+                <p class="text-xs font-medium text-slate-600 mt-1">Puissance raccordement</p>
+              </div>
+
+              <div class="mt-3">
+                <div class="flex items-center rounded-lg border border-blue-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-grid-contract"
+                    data-step="-10"
+                    title="Diminuer de 10 kW"
+                  >
+                    &minus;
+                  </button>
+                  <input
+                    type="number"
+                    id="param-grid-contract"
+                    min="0"
+                    max="5000"
+                    step="10"
+                    value="160"
+                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                  />
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    data-target="param-grid-contract"
+                    data-step="10"
+                    title="Augmenter de 10 kW"
+                  >
+                    +
+                  </button>
+                  <span class="pr-2.5 text-xs font-bold font-mono text-blue-700 select-none">kW</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. PARTIE PLANIFICATION -->
+      <section class="card-panel bg-white shadow-xs space-y-5" id="planning-section">
+        <!-- Header de la section Planification -->
+        <div class="card-panel-header flex flex-col md:flex-row md:items-center justify-between gap-3 py-3 px-4 bg-slate-50/90 border-b border-slate-200">
+          <div class="flex items-center gap-2.5">
+            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-sm">
+              📈
+            </span>
+            <div>
+              <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                Partie Planification
+                <span class="px-2 py-0.5 text-[11px] font-semibold text-indigo-700 bg-indigo-100 rounded-full">Pilotage & Équilibre 24h</span>
+              </h2>
+              <p class="text-xs text-slate-500">
+                Courbe 1 : Plan de production / consommation &bull; Courbe 2 : Pilotage interactif batterie (BESS)
+              </p>
+            </div>
+          </div>
+
+          <!-- Indicateurs d'état de planification -->
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span id="planning-grid-contract-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+              🌐 Limite Réseau : 160 kW
+            </span>
+            <span id="planning-deficit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              ✓ Charge 100% couverte
+            </span>
+            <span id="planning-soc-end-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+              🔋 SoC fin : --%
+            </span>
+          </div>
+        </div>
+
+        <div class="p-4 space-y-6">
+          <!-- COURBE 1 : Plan de production / consommation -->
+          <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs" id="panel-planning-chart1">
+            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>Courbe 1 : Plan de production / consommation</span>
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-200 text-slate-700">Escalier</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Plan prod PV &bull; Plan charge &bull; Réseau plafonné &bull; Manque d'énergie &bull; Prix de l'électricité
+                </p>
+              </div>
+              <div class="flex items-center gap-2 text-xs">
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                  <span class="w-2.5 h-2.5 rounded-xs bg-amber-400"></span> PV
+                </span>
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                  <span class="w-2.5 h-2.5 rounded-xs bg-rose-500"></span> Charge
+                </span>
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                  <span class="w-2.5 h-2.5 rounded-xs bg-blue-600"></span> Réseau
+                </span>
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                  <span class="w-2.5 h-2.5 rounded-xs bg-red-600"></span> Déficit
+                </span>
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                  <span class="w-2.5 h-2.5 rounded-xs bg-amber-600"></span> Prix Spot
+                </span>
+              </div>
+            </div>
+
+            <!-- Canvas Courbe 1 -->
+            <div class="p-3.5 h-[340px] relative">
+              <canvas id="chart-planning-power"></canvas>
+            </div>
+
+            <!-- Guide explicatif physique Courbe 1 -->
+            <div class="px-4 py-2.5 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>
+                  <strong class="text-slate-700">Réseau :</strong> la zone bleue est plafonnée à la puissance contractuelle de raccordement.
+                </span>
+                <span>
+                  <strong class="text-rose-700">Déficit :</strong> si la demande excède le réseau, la partie qui manque pour la charge correspond exactement au manque réseau.
+                </span>
+              </div>
+              <span class="text-slate-400 font-mono">Axe droit : Prix électricité spot (€/MWh)</span>
+            </div>
+          </div>
+
+          <!-- COURBE 2 : Pilotage interactif BESS & SoC -->
+          <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs" id="panel-planning-chart2">
+            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>Courbe 2 : Pilotage</span>
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800">Interactif</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Histogramme de puissance batterie (<strong>En haut = Décharge</strong>, <strong>En bas = Charge</strong>) & Niveau de SoC (%)
+                </p>
+              </div>
+
+              <!-- Profils rapides d'optimisation -->
+              <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                <span class="text-slate-400 text-[11px] mr-1">Profils :</span>
+                <button
+                  type="button"
+                  id="btn-profile-pv"
+                  class="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-medium transition-colors"
+                  title="Charger lors du surplus PV et décharger lors de la pointe de consommation"
+                >
+                  ☀️ Autoconsommation
+                </button>
+                <button
+                  type="button"
+                  id="btn-profile-arbitrage"
+                  class="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-medium transition-colors"
+                  title="Charger aux heures de prix bas et décharger aux heures de prix élevé"
+                >
+                  💶 Arbitrage Spot
+                </button>
+                <button
+                  type="button"
+                  id="btn-profile-default"
+                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
+                  title="Rétablir le profil initial de prévision"
+                >
+                  🔄 Initial
+                </button>
+                <button
+                  type="button"
+                  id="btn-profile-zero"
+                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
+                  title="Mettre toutes les consignes batterie à 0 kW"
+                >
+                  🧹 0 kW
+                </button>
+              </div>
+            </div>
+
+            <!-- Barre de contrôle interactif de la barre sélectionnée -->
+            <div class="px-4 py-3 bg-slate-100/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3" id="planning-bar-controller">
+              <!-- Sélecteur d'heure -->
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-plan-prev-hour"
+                  class="h-8 w-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-700 font-bold transition-colors select-none"
+                  title="Heure précédente"
+                >
+                  ◀
+                </button>
+                <div class="text-center px-2">
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Heure</span>
+                  <span id="planning-hour-display" class="font-mono font-bold text-sm text-slate-900">12h00 - 13h00</span>
+                </div>
+                <button
+                  type="button"
+                  id="btn-plan-next-hour"
+                  class="h-8 w-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-700 font-bold transition-colors select-none"
+                  title="Heure suivante"
+                >
+                  ▶
+                </button>
+              </div>
+
+              <!-- Statut et valeur de consigne -->
+              <div class="flex items-center gap-3">
+                <div class="text-center">
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Consigne BESS</span>
+                  <span id="planning-power-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
+                    +80 kW (Décharge ⚡)
+                  </span>
+                </div>
+                <div class="text-center">
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC résultant</span>
+                  <span id="planning-hour-soc-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
+                    65.0%
+                  </span>
+                </div>
+              </div>
+
+              <!-- Curseur Slider interactif -->
+              <div class="flex items-center gap-2 flex-1 max-w-xs min-w-[200px]">
+                <span class="text-[11px] font-mono text-amber-700 font-medium whitespace-nowrap" id="planning-slider-min-lbl">-150 kW</span>
+                <input
+                  type="range"
+                  id="planning-bess-slider"
+                  min="-150"
+                  max="150"
+                  step="5"
+                  value="0"
+                  class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer accent-indigo-600"
+                />
+                <span class="text-[11px] font-mono text-emerald-700 font-medium whitespace-nowrap" id="planning-slider-max-lbl">+150 kW</span>
+              </div>
+
+              <!-- Boutons de pas et actions rapides -->
+              <div class="flex items-center gap-1.5 text-xs">
+                <button
+                  type="button"
+                  class="btn-bess-step px-2 py-1 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-mono font-bold transition-colors"
+                  data-step="-10"
+                  title="Diminuer de 10 kW"
+                >
+                  &minus;10
+                </button>
+                <button
+                  type="button"
+                  class="btn-bess-step px-2 py-1 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-mono font-bold transition-colors"
+                  data-step="10"
+                  title="Augmenter de 10 kW"
+                >
+                  +10
+                </button>
+                <div class="h-5 w-px bg-slate-300 mx-1"></div>
+                <button
+                  type="button"
+                  id="btn-bess-max-discharge"
+                  class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors shadow-2xs"
+                  title="Décharger à la puissance maximale"
+                >
+                  ⚡ Décharge Max
+                </button>
+                <button
+                  type="button"
+                  id="btn-bess-zero"
+                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold transition-colors"
+                  title="Consigne à zéro (veille)"
+                >
+                  ⏸ 0 kW
+                </button>
+                <button
+                  type="button"
+                  id="btn-bess-max-charge"
+                  class="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold transition-colors shadow-2xs"
+                  title="Charger à la puissance maximale"
+                >
+                  🔋 Charge Max
+                </button>
+              </div>
+            </div>
+
+            <!-- Canvas Courbe 2 -->
+            <div class="p-3.5 h-[320px] relative">
+              <canvas id="chart-planning-bess"></canvas>
+            </div>
+
+            <!-- Légende & instructions sous Courbe 2 -->
+            <div class="px-4 py-2 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+              <div class="flex items-center gap-4">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-2 rounded-xs bg-emerald-500 inline-block"></span>
+                  <strong class="text-emerald-800">En haut (> 0 kW) :</strong> Décharge batterie
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-2 rounded-xs bg-amber-500 inline-block"></span>
+                  <strong class="text-amber-800">En bas (&lt; 0 kW) :</strong> Charge batterie
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-0.5 bg-indigo-600 inline-block"></span>
+                  <strong class="text-indigo-800">Ligne :</strong> Niveau de SoC (%)
+                </span>
+              </div>
+              <span class="text-slate-500 italic">
+                💡 Cliquez ou glissez verticalement sur une barre pour ajuster la puissance.
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI Summary Cards -->
+      <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5" id="kpi-section">
+        <!-- Card 1: Autoconsommation -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-autoconsommation">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Autoconsommation</span>
+            <span class="text-amber-500">☀️</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-2xl font-bold tracking-tight text-slate-900" id="kpi-autoconsommation">--%</span>
+          </div>
+          <span class="text-[11px] text-slate-500 truncate">PV consommé sur site</span>
+        </div>
+
+        <!-- Card 2: Autoproduction -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-autoproduction">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Autoproduction</span>
+            <span class="text-emerald-500">🔋</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-2xl font-bold tracking-tight text-slate-900" id="kpi-autoproduction">--%</span>
+          </div>
+          <span class="text-[11px] text-slate-500 truncate">Besoins couverts en local</span>
+        </div>
+
+        <!-- Card 3: Économies nettes -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-savings">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Économies nettes</span>
+            <span class="text-blue-500">💶</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-2xl font-bold tracking-tight text-emerald-600" id="kpi-savings">-- €</span>
+          </div>
+          <span class="text-[11px] text-slate-500 truncate">Facture : <strong id="kpi-bill" class="font-medium text-slate-700">-- €</strong></span>
+        </div>
+
+        <!-- Card 4: Bilan PV & Charge -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-energies">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Énergie Jour</span>
+            <span class="text-slate-400">⚡</span>
+          </div>
+          <div class="space-y-0.5 my-1 text-xs">
+            <div class="flex justify-between">
+              <span class="text-amber-600 font-medium">PV :</span>
+              <span id="kpi-pv-total" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-rose-600 font-medium">Charge :</span>
+              <span id="kpi-load-total" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+          </div>
+          <span class="text-[11px] text-slate-500">Production & demande</span>
+        </div>
+
+        <!-- Card 5: Échanges Réseau -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-grid">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Réseau (GRID)</span>
+            <span class="text-blue-500">🌐</span>
+          </div>
+          <div class="space-y-0.5 my-1 text-xs">
+            <div class="flex justify-between">
+              <span class="text-blue-600 font-medium">Soutirage :</span>
+              <span id="kpi-grid-import" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-purple-600 font-medium">Injection :</span>
+              <span id="kpi-grid-export" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+          </div>
+          <span class="text-[11px] text-slate-500">Flux avec le réseau</span>
+        </div>
+
+        <!-- Card 6: Cycles BESS & Précision -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-bess-status">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Batterie & Écarts</span>
+            <span class="text-emerald-500">🎯</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-xl font-bold tracking-tight text-slate-900" id="kpi-bess-cycles">-- cycles</span>
+          </div>
+          <span class="text-[10px] text-slate-500 truncate" id="kpi-pv-mae" title="Erreur moyenne absolue PV">MAE PV: --</span>
+        </div>
+      </section>
+
+      <!-- Real-Time Cursor & Synoptic Pilotage Bar -->
+      <section class="card-panel p-4" id="realtime-pilotage-section">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <button
+              id="btn-play-pause"
+              class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors flex items-center gap-1.5"
+            >
+              ▶ Rejouer
+            </button>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-500">Curseur temps réel :</span>
+              <span id="rt-time-badge" class="px-2.5 py-0.5 text-sm font-mono font-bold rounded bg-slate-900 text-white">
+                13:00
+              </span>
+            </div>
+          </div>
+
+          <!-- Slider bar 0 to 1439 min -->
+          <div class="flex-1 max-w-xl flex items-center gap-3">
+            <span class="text-xs font-mono text-slate-400">00:00</span>
+            <input
+              type="range"
+              id="time-slider"
+              min="0"
+              max="1439"
+              step="1"
+              value="780"
+              class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer"
+            />
+            <span class="text-xs font-mono text-slate-400">23:59</span>
+          </div>
+        </div>
+
+        <!-- Real-Time Asset Readouts & Deviation Badges -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3.5 text-center">
+          <!-- PV Asset -->
+          <div class="p-2.5 rounded-lg bg-amber-50/60 border border-amber-100" id="box-pv-rt">
+            <div class="text-xs text-amber-800 font-medium">☀️ Centrale PV (1 min)</div>
+            <div class="text-lg font-bold font-mono text-amber-950 mt-0.5" id="rt-pv-val">-- kW</div>
+            <div class="mt-1 flex items-center justify-center gap-1 text-[11px]">
+              <span class="text-slate-500">Écart vs Prévu:</span>
+              <span id="rt-pv-delta" class="font-mono text-xs">--</span>
+            </div>
+          </div>
+
+          <!-- Load Asset -->
+          <div class="p-2.5 rounded-lg bg-rose-50/60 border border-rose-100" id="box-load-rt">
+            <div class="text-xs text-rose-800 font-medium">🏭 Charge Réelle (1 min)</div>
+            <div class="text-lg font-bold font-mono text-rose-950 mt-0.5" id="rt-load-val">-- kW</div>
+            <div class="mt-1 flex items-center justify-center gap-1 text-[11px]">
+              <span class="text-slate-500">Écart vs Prévu:</span>
+              <span id="rt-load-delta" class="font-mono text-xs">--</span>
+            </div>
+          </div>
+
+          <!-- BESS Asset -->
+          <div class="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-100" id="box-bess-rt">
+            <div class="text-xs text-emerald-800 font-medium">🔋 Batterie BESS (SoC)</div>
+            <div class="text-lg font-bold font-mono text-emerald-950 mt-0.5" id="rt-soc-val">--%</div>
+            <div class="mt-1 text-[11px] font-mono text-emerald-700 truncate" id="rt-bess-status">
+              Veille (0 kW)
+            </div>
+          </div>
+
+          <!-- GRID Asset -->
+          <div class="p-2.5 rounded-lg bg-blue-50/60 border border-blue-100" id="box-grid-rt">
+            <div class="text-xs text-blue-800 font-medium">🌐 Réseau & Prix Spot</div>
+            <div class="text-lg font-bold font-mono text-blue-950 mt-0.5" id="rt-grid-val">-- kW</div>
+            <div class="mt-1 text-[11px] font-mono text-blue-700" id="rt-price-val">
+              -- €/MWh
+            </div>
+          </div>
+        </div>
+
+        <!-- Microgrid Simplified Synoptic Diagram -->
+        <div class="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200" id="schematic-view">
+          <div class="flex items-center justify-between text-xs text-slate-500 font-medium mb-2">
+            <span>Schéma Synoptique du Micro-Réseau (Bilan instantané)</span>
+            <span class="text-[11px] text-slate-400">PV + BESS + GRID = LOAD</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-center">
+            <!-- Node PV -->
+            <div class="bg-white p-2.5 rounded-md border border-slate-200 flex flex-col items-center">
+              <span class="text-xs font-semibold text-amber-700">Centrale PV</span>
+              <span id="schematic-pv-kw" class="text-base font-bold font-mono text-slate-800 my-0.5">-- kW</span>
+              <span class="text-[10px] text-slate-400">Injection sur bus AC</span>
+            </div>
+
+            <!-- Node BESS -->
+            <div class="bg-white p-2.5 rounded-md border border-slate-200 flex flex-col items-center">
+              <span class="text-xs font-semibold text-emerald-700">Stockage BESS</span>
+              <span id="schematic-bess-kw" class="text-base font-bold font-mono text-slate-800 my-0.5">-- kW</span>
+              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1 max-w-[100px]">
+                <div id="schematic-soc-bar" class="bg-emerald-500 h-full rounded-full" style="width: 50%"></div>
+              </div>
+              <span class="text-[10px] text-slate-500 mt-0.5">SoC: <strong id="schematic-soc">--%</strong></span>
+            </div>
+
+            <!-- Node GRID -->
+            <div class="bg-white p-2.5 rounded-md border border-slate-200 flex flex-col items-center">
+              <span class="text-xs font-semibold text-blue-700">Réseau Électrique</span>
+              <span id="schematic-grid-kw" class="text-base font-bold font-mono text-slate-800 my-0.5">-- kW</span>
+              <span class="text-[10px] text-slate-400">Échange bidirectionnel</span>
+            </div>
+
+            <!-- Node LOAD -->
+            <div class="bg-white p-2.5 rounded-md border border-slate-200 flex flex-col items-center">
+              <span class="text-xs font-semibold text-rose-700">Charge non pilotable</span>
+              <span id="schematic-load-kw" class="text-base font-bold font-mono text-slate-800 my-0.5">-- kW</span>
+              <span class="text-[10px] text-slate-400">Consommation du site</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Interactive Graphs Grid -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="charts-section">
+        <!-- Chart 1: Flux de puissances en temps réel -->
+        <div class="card-panel flex flex-col" id="panel-chart-power">
+          <div class="card-panel-header flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">1. Flux de Puissances en Temps Réel (1 min)</h2>
+              <p class="text-xs text-slate-500">PV mesuré, Charge mesurée, BESS et Échange Réseau</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs bg-slate-100 text-slate-700 rounded font-mono">1 min</span>
+          </div>
+          <div class="p-3.5 flex-1 min-h-[300px] relative">
+            <canvas id="chart-power-flows"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Comparatif Prévision vs Réalisé -->
+        <div class="card-panel flex flex-col" id="panel-chart-compare">
+          <div class="card-panel-header flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">2. Comparatif Prévisions vs Mesures</h2>
+              <p class="text-xs text-slate-500">PV (1h vs 1min) & Charge (5min vs 1min)</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs bg-amber-50 text-amber-800 rounded font-mono">Écarts</span>
+          </div>
+          <div class="p-3.5 flex-1 min-h-[300px] relative">
+            <canvas id="chart-comparative"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 3: Visualisation des Écarts (Deltas kW) -->
+        <div class="card-panel flex flex-col" id="panel-chart-deltas">
+          <div class="card-panel-header flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">3. Écarts Minute par Minute (Deltas en kW)</h2>
+              <p class="text-xs text-slate-500">Écart = Mesure (1 min) &minus; Prévision rééchantillonnée</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs bg-slate-100 text-slate-700 rounded font-mono">&Delta; kW</span>
+          </div>
+          <div class="p-3.5 flex-1 min-h-[300px] relative">
+            <canvas id="chart-deltas"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 4: Suivi Batterie BESS -->
+        <div class="card-panel flex flex-col" id="panel-chart-bess">
+          <div class="card-panel-header flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">4. État de Charge Batterie (SoC %) & Puissance</h2>
+              <p class="text-xs text-slate-500">Évolution de l'énergie stockée et cycles de charge/décharge</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs bg-emerald-50 text-emerald-800 rounded font-mono">SoC %</span>
+          </div>
+          <div class="p-3.5 flex-1 min-h-[300px] relative">
+            <canvas id="chart-bess-soc"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 5: Prix de l'énergie Spot et Coût cumulé (Spans full width on large screens) -->
+        <div class="card-panel lg:col-span-2 flex flex-col" id="panel-chart-price">
+          <div class="card-panel-header flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">5. Marché de l'Énergie Spot (€/MWh) & Facture Cumulée (€)</h2>
+              <p class="text-xs text-slate-500">Tarification horaire issue de GRID_forecast et impact économique du micro-réseau</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs bg-blue-50 text-blue-800 rounded font-mono">€/MWh</span>
+          </div>
+          <div class="p-3.5 h-[260px] relative">
+            <canvas id="chart-grid-price"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- CSV Data Files Management (Fichiers de données CSV) -->
+      <section class="card-panel" id="csv-management-section">
+        <div class="card-panel-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Fichiers de Prévisions & Mesures CSV</h2>
+            <p class="text-xs text-slate-500">
+              Fichiers gérés : GRID_forecast (1h), PV_forecast (1h), BESS_forecast (1h), LOAD_forecast (5min), PV_measures (1min), LOAD_measure (1min)
+            </p>
+          </div>
+          <span class="text-xs text-slate-500">
+            Stockage : <strong class="text-emerald-700 font-semibold">LocalStorage Navigateur</strong>
+          </span>
+        </div>
+
+        <!-- Global Drag & Drop Box -->
+        <div class="p-5">
+          <div
+            id="global-dropzone"
+            class="dropzone-box border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer mb-5"
+          >
+            <input type="file" id="global-file-input" accept=".csv" multiple class="hidden" />
+            <div class="flex flex-col items-center justify-center gap-1.5">
+              <span class="text-2xl">📂</span>
+              <p class="text-sm font-semibold text-slate-800">
+                Glissez-déposez un ou plusieurs fichiers CSV ici
+              </p>
+              <p class="text-xs text-slate-500">
+                Reconnaissance automatique des noms : GRID_forecast.csv, PV_forecast.csv, BESS_forecast.csv, LOAD_forecast.csv, PV_measures.csv, LOAD_measure.csv
+              </p>
+              <span class="mt-2 inline-flex items-center px-3 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100">
+                Ou cliquez pour parcourir vos fichiers
+              </span>
+            </div>
+          </div>
+
+          <!-- Table of 6 files -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="files-table">
+              <thead>
+                <tr class="border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">
+                  <th class="py-2.5 px-4">Fichier attendu</th>
+                  <th class="py-2.5 px-4 text-center">Pas de temps</th>
+                  <th class="py-2.5 px-4 text-center">Type</th>
+                  <th class="py-2.5 px-4 text-center">Statut</th>
+                  <th class="py-2.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="files-table-body" class="divide-y divide-slate-100 text-xs">
+                <!-- Dynamically rendered by main.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer Info -->
+      <footer class="pt-4 pb-8 text-center text-xs text-slate-400 space-y-1">
+        <p>Microgrid Manager &bull; Solution de pilotage et dimensionnement énergétique locale sans backend.</p>
+        <p>Données stockées exclusivement sur votre navigateur via Web Storage API.</p>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
