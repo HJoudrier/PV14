@@ -1395,18 +1395,14 @@ const lockAxisWidth = (width) => (axis) => {
   axis.width = width;
 };
 
-// Courbe 1 n'a de valeur réelle que pour les 24 heures (00:00..23:00) : on ajoute un
-// point 24:00 à `null` (au lieu de dupliquer la dernière valeur) uniquement pour que
-// l'axe des heures ait le même nombre de catégories que la Courbe 2 (pas de décalage
-// pixel), sans dessiner de segment/barre fantôme sur ce dernier pas de temps.
-const padNull = (arr) => [...arr, null];
-
 // Axe catégoriel caché à 24 créneaux (avec `offset: true`, comme le ferait n'importe
-// quel bar chart), utilisé uniquement pour les barres d'histogramme. Ses 24 cellules
-// se calent exactement sur les 24 intervalles de l'axe horaire principal `x` (25
-// graduations 00:00..24:00, `offset: false`) : chaque barre se retrouve donc centrée
-// sur la demi-heure de son créneau (ex. le créneau 00:00-01:00 est centré sur 00:30)
-// sans déplacer les graduations affichées.
+// quel bar chart), utilisé pour toutes les séries de la Courbe 1 (courbes ET barres).
+// Ses 24 cellules se calent exactement sur les 24 intervalles de l'axe horaire principal
+// `x` (25 graduations 00:00..24:00, `offset: false`) : chaque point/barre se retrouve
+// donc centré sur la demi-heure de son créneau (ex. le créneau 00:00-01:00 est centré
+// sur 00:30), ce qui représente correctement une moyenne horaire, sans déplacer les
+// graduations affichées. Combiné à `stepped: 'middle'` sur les courbes, la transition
+// d'un créneau à l'autre se produit exactement sur l'heure pleine (l'escalier).
 const hiddenHourBarAxis = (hours) => ({
   type: 'category',
   position: 'bottom',
@@ -1473,22 +1469,21 @@ function renderPlanningCharts() {
     const loadNeg = planData.loadPlan.map((v) => -v);
     const loadCoveredNeg = planData.loadCovered.map((v) => -v);
 
-    const pvExt = padNull(planData.pvPlan);
-    const loadCoveredNegExt = padNull(loadCoveredNeg);
-    const loadNegExt = padNull(loadNeg);
-    const gridExt = padNull(planData.gridPlan);
-    const gridRawExt = padNull(planData.gridPlanRaw);
+    const pvVals = planData.pvPlan;
+    const loadCoveredNegVals = loadCoveredNeg;
+    const loadNegVals = loadNeg;
+    const gridVals = planData.gridPlan;
+    const gridRawVals = planData.gridPlanRaw;
     const priceBars = planData.gridPrice;
 
     const alignedScales = computeAlignedZeroScales(
-      [...pvExt, ...loadCoveredNegExt, ...loadNegExt, ...gridExt, ...gridRawExt],
+      [...pvVals, ...loadCoveredNegVals, ...loadNegVals, ...gridVals, ...gridRawVals],
       planData.gridPrice
     );
 
-    // Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00",
-    // le point dupliqué (24:00) reprenant le même intervalle que le dernier point réel.
+    // Titre d'infobulle en intervalle horaire : "00:00 - 01:00", ..., "23:00 - 24:00".
     const tooltipHourRangeTitle = (items) => {
-      const startH = Math.min(items[0].dataIndex, 23);
+      const startH = items[0].dataIndex;
       const startStr = `${String(startH).padStart(2, '0')}:00`;
       const endStr = `${String(startH + 1).padStart(2, '0')}:00`;
       return `${startStr} - ${endStr}`;
@@ -1497,11 +1492,11 @@ function renderPlanningCharts() {
     if (state.charts.planningPower) {
       const chart = state.charts.planningPower;
       chart.data.labels = hoursExt;
-      chart.data.datasets[0].data = pvExt;
-      chart.data.datasets[1].data = loadCoveredNegExt;
-      chart.data.datasets[2].data = loadNegExt;
-      chart.data.datasets[3].data = gridExt;
-      chart.data.datasets[4].data = gridRawExt;
+      chart.data.datasets[0].data = pvVals;
+      chart.data.datasets[1].data = loadCoveredNegVals;
+      chart.data.datasets[2].data = loadNegVals;
+      chart.data.datasets[3].data = gridVals;
+      chart.data.datasets[4].data = gridRawVals;
       chart.data.datasets[5].data = priceBars;
       chart.options.scales.yPower.min = alignedScales.powerMin;
       chart.options.scales.yPower.max = alignedScales.powerMax;
@@ -1516,63 +1511,68 @@ function renderPlanningCharts() {
           datasets: [
             {
               label: 'PV ',
-              data: pvExt,
+              data: pvVals,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245, 158, 11, 0.16)',
               borderWidth: 2,
               fill: true,
-              tension: 0,
+              stepped: 'middle',
               pointRadius: 0,
+              xAxisID: 'xBar',
               yAxisID: 'yPower',
             },
             {
               // Charge réellement fournie : suit la demande quand tout est couvert,
               // sinon reste entre 0 et la courbe de demande (déficit de puissance).
               label: 'Charge fournie ',
-              data: loadCoveredNegExt,
+              data: loadCoveredNegVals,
               borderColor: '#e11d48',
               backgroundColor: 'rgba(225, 29, 72, 0.28)',
               borderWidth: 1,
               fill: true,
-              tension: 0,
+              stepped: 'middle',
               pointRadius: 0,
+              xAxisID: 'xBar',
               yAxisID: 'yPower',
             },
             {
               label: 'Charge demandée ',
-              data: loadNegExt,
+              data: loadNegVals,
               borderColor: '#e11d48',
               borderWidth: 2,
               borderDash: [5, 3],
               fill: false,
-              tension: 0,
+              stepped: 'middle',
               pointRadius: 0,
+              xAxisID: 'xBar',
               yAxisID: 'yPower',
             },
             {
               // Réseau réellement mobilisé : la consigne d'équilibre plafonnée par la
               // limite de raccordement (import) / d'export contractuelle.
               label: 'Réseau fourni ',
-              data: gridExt,
+              data: gridVals,
               borderColor: '#2563eb',
               backgroundColor: 'rgba(37, 99, 235, 0.16)',
               borderWidth: 2,
               fill: true,
-              tension: 0,
+              stepped: 'middle',
               pointRadius: 0,
+              xAxisID: 'xBar',
               yAxisID: 'yPower',
             },
             {
               // Consigne réseau nécessaire pour équilibrer le système et opérer
               // intégralement la charge, sans tenir compte de la limite de raccordement.
               label: 'Réseau demandé ',
-              data: gridRawExt,
+              data: gridRawVals,
               borderColor: '#2563eb',
               borderWidth: 2,
               borderDash: [5, 3],
               fill: false,
-              tension: 0,
+              stepped: 'middle',
               pointRadius: 0,
+              xAxisID: 'xBar',
               yAxisID: 'yPower',
             },
             {
