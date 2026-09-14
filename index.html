@@ -318,7 +318,7 @@
                   <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-200 text-slate-700">Escalier</span>
                 </h3>
                 <p class="text-xs text-slate-500 mt-0.5">
-                  Plan prod PV &bull; Plan charge &bull; Réseau plafonné &bull; Manque d'énergie &bull; Prix de l'électricité
+                  PV &bull; Charge &bull; Réseau — producteurs (+) vers le haut, consommateurs (-) vers le bas
                 </p>
               </div>
               <div class="flex items-center gap-2 text-xs">
@@ -330,12 +330,6 @@
                 </span>
                 <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
                   <span class="w-2.5 h-2.5 rounded-xs bg-blue-600"></span> Réseau
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-red-600"></span> Déficit
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-amber-600"></span> Prix Spot
                 </span>
               </div>
             </div>
@@ -349,13 +343,15 @@
             <div class="px-4 py-2.5 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
               <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>
-                  <strong class="text-slate-700">Réseau :</strong> la zone bleue est plafonnée à la puissance contractuelle de raccordement.
+                  <strong class="text-amber-700">PV :</strong> producteur, toujours positif (vers le haut).
                 </span>
                 <span>
-                  <strong class="text-rose-700">Déficit :</strong> si la demande excède le réseau, la partie qui manque pour la charge correspond exactement au manque réseau.
+                  <strong class="text-rose-700">Charge :</strong> consommatrice, toujours négative (vers le bas).
+                </span>
+                <span>
+                  <strong class="text-blue-700">Réseau :</strong> positif quand on soutire, négatif quand on injecte.
                 </span>
               </div>
-              <span class="text-slate-400 font-mono">Axe droit : Prix électricité spot (€/MWh)</span>
             </div>
           </div>
 

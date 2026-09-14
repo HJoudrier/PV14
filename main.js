@@ -1404,16 +1404,17 @@ function renderPlanningCharts() {
   // 1. Chart 1: Plan de production / consommation (Courbe 1)
   const ctxPower = document.getElementById('chart-planning-power')?.getContext('2d');
   if (ctxPower) {
+    // Convention: producteurs en positif (vers le haut), consommateurs en négatif (vers le bas).
+    // PV : toujours producteur -> positif. Charge : toujours consommatrice -> négatif.
+    // Réseau : positif quand on soutire (consommateur), négatif quand on injecte (producteur).
+    const loadNeg = planData.loadPlan.map((v) => -v);
+
     if (state.charts.planningPower) {
       const chart = state.charts.planningPower;
       chart.data.labels = planData.hours;
       chart.data.datasets[0].data = planData.pvPlan;
-      chart.data.datasets[1].data = planData.loadPlan;
-      chart.data.datasets[2].data = planData.loadCovered;
-      chart.data.datasets[3].data = planData.gridPlan;
-      chart.data.datasets[4].data = planData.gridContractLine;
-      chart.data.datasets[5].data = planData.deficit;
-      chart.data.datasets[6].data = planData.gridPrice;
+      chart.data.datasets[1].data = loadNeg;
+      chart.data.datasets[2].data = planData.gridPlan;
       chart.update('none');
     } else {
       state.charts.planningPower = new Chart(ctxPower, {
@@ -1422,7 +1423,7 @@ function renderPlanningCharts() {
           labels: planData.hours,
           datasets: [
             {
-              label: 'Plan prod PV (kW)',
+              label: 'PV (kW)',
               data: planData.pvPlan,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245, 158, 11, 0.16)',
@@ -1433,28 +1434,18 @@ function renderPlanningCharts() {
               yAxisID: 'yPower',
             },
             {
-              label: 'Plan charge demandée (kW)',
-              data: planData.loadPlan,
+              label: 'Charge (kW)',
+              data: loadNeg,
               borderColor: '#e11d48',
+              backgroundColor: 'rgba(225, 29, 72, 0.16)',
               borderWidth: 2,
-              borderDash: [5, 3],
-              fill: false,
+              fill: true,
               stepped: 'before',
               pointRadius: 0,
               yAxisID: 'yPower',
             },
             {
-              label: 'Charge couverte (kW)',
-              data: planData.loadCovered,
-              borderColor: '#10b981',
-              borderWidth: 2,
-              fill: false,
-              stepped: 'before',
-              pointRadius: 0,
-              yAxisID: 'yPower',
-            },
-            {
-              label: 'Réseau soutiré / injecté (kW)',
+              label: 'Réseau (kW)',
               data: planData.gridPlan,
               borderColor: '#2563eb',
               backgroundColor: 'rgba(37, 99, 235, 0.16)',
@@ -1463,39 +1454,6 @@ function renderPlanningCharts() {
               stepped: 'before',
               pointRadius: 0,
               yAxisID: 'yPower',
-            },
-            {
-              label: 'Limite contractuelle réseau (kW)',
-              data: planData.gridContractLine,
-              borderColor: '#0f172a',
-              borderWidth: 1.5,
-              borderDash: [6, 4],
-              fill: false,
-              stepped: 'before',
-              pointRadius: 0,
-              yAxisID: 'yPower',
-            },
-            {
-              label: 'Manque d\'énergie / Déficit (kW)',
-              data: planData.deficit,
-              borderColor: '#dc2626',
-              backgroundColor: 'rgba(220, 38, 38, 0.45)',
-              borderWidth: 1.5,
-              fill: true,
-              stepped: 'before',
-              pointRadius: 0,
-              yAxisID: 'yPower',
-            },
-            {
-              label: 'Prix spot électricité (€/MWh)',
-              data: planData.gridPrice,
-              borderColor: '#d97706',
-              borderWidth: 1.5,
-              borderDash: [2, 2],
-              fill: false,
-              stepped: 'before',
-              pointRadius: 2,
-              yAxisID: 'yPrice',
             },
           ],
         },
@@ -1510,10 +1468,7 @@ function renderPlanningCharts() {
             },
             tooltip: {
               callbacks: {
-                label: (ctx) => {
-                  const unit = ctx.dataset.yAxisID === 'yPrice' ? '€/MWh' : 'kW';
-                  return ` ${ctx.dataset.label}: ${ctx.raw} ${unit}`;
-                },
+                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw} kW`,
               },
             },
           },
@@ -1526,15 +1481,8 @@ function renderPlanningCharts() {
               type: 'linear',
               position: 'left',
               grid: { color: '#f1f5f9' },
-              title: { display: true, text: 'Puissance (kW)', color: '#475569', font: { size: 11 } },
+              title: { display: true, text: 'Puissance (kW) — Producteur (+) / Consommateur (-)', color: '#475569', font: { size: 11 } },
               ticks: { color: '#64748b', callback: (v) => `${v} kW` },
-            },
-            yPrice: {
-              type: 'linear',
-              position: 'right',
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: 'Prix Spot (€/MWh)', color: '#d97706', font: { size: 11 } },
-              ticks: { color: '#d97706', callback: (v) => `${v} €` },
             },
           },
         },
