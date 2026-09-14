@@ -23,6 +23,16 @@ python3 -m http.server 8000
 
 then visit `http://localhost:8000/`.
 
+## Code layout (js/)
+
+The application code lives in [`js/`](js) split into small classic
+scripts (each under 10 KB), loaded in order by `index.html`. There's no
+module system — every file shares one global scope, so **load order
+matters** (a file may use functions/consts defined by an earlier file,
+never a later one) and the numeric filename prefixes reflect that
+order. Keep using plain `<script src="...">` tags (not `type="module"`)
+so the app keeps working when opened directly via `file://`.
+
 ## Updating styles (index.css)
 
 `index.css` is a **compiled** Tailwind CSS file — do not hand-edit its

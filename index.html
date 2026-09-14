@@ -911,7 +911,7 @@
                 </tr>
               </thead>
               <tbody id="files-table-body" class="divide-y divide-slate-100 text-xs">
-                <!-- Dynamically rendered by main.js -->
+                <!-- Dynamically rendered by js/10-planning-ui-files.js -->
               </tbody>
             </table>
           </div>
@@ -927,6 +927,18 @@
 
     <script src="vendor/papaparse.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
-    <script src="main.js"></script>
+    <!-- Code applicatif découpé en petits fichiers (<10 Ko chacun), chargés dans cet
+         ordre car ce sont des scripts classiques partageant une seule portée globale. -->
+    <script src="js/01-state.js"></script>
+    <script src="js/02-simulation-utils.js"></script>
+    <script src="js/03-simulation-engine.js"></script>
+    <script src="js/04-overview-charts-a.js"></script>
+    <script src="js/05-overview-charts-b.js"></script>
+    <script src="js/06-planning-data.js"></script>
+    <script src="js/07-planning-chart-setup.js"></script>
+    <script src="js/08-planning-chart-power.js"></script>
+    <script src="js/09-planning-chart-bess.js"></script>
+    <script src="js/10-planning-ui-files.js"></script>
+    <script src="js/11-params-init.js"></script>
   </body>
 </html>
