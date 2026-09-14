@@ -1411,13 +1411,15 @@ function renderPlanningCharts() {
     // PV : toujours producteur -> positif. Charge : toujours consommatrice -> négatif.
     // Réseau : positif quand on soutire (consommateur), négatif quand on injecte (producteur).
     const loadNeg = planData.loadPlan.map((v) => -v);
+    const loadCoveredNeg = planData.loadCovered.map((v) => -v);
 
     if (state.charts.planningPower) {
       const chart = state.charts.planningPower;
       chart.data.labels = planData.hours;
       chart.data.datasets[0].data = planData.pvPlan;
-      chart.data.datasets[1].data = loadNeg;
-      chart.data.datasets[2].data = planData.gridPlan;
+      chart.data.datasets[1].data = loadCoveredNeg;
+      chart.data.datasets[2].data = loadNeg;
+      chart.data.datasets[3].data = planData.gridPlan;
       chart.update('none');
     } else {
       state.charts.planningPower = new Chart(ctxPower, {
@@ -1437,12 +1439,25 @@ function renderPlanningCharts() {
               yAxisID: 'yPower',
             },
             {
-              label: 'Charge (kW)',
+              // Charge réellement fournie : suit la demande quand tout est couvert,
+              // sinon reste entre 0 et la courbe de demande (déficit de puissance).
+              label: 'Charge fournie (kW)',
+              data: loadCoveredNeg,
+              borderColor: '#e11d48',
+              backgroundColor: 'rgba(225, 29, 72, 0.28)',
+              borderWidth: 1,
+              fill: true,
+              stepped: 'before',
+              pointRadius: 0,
+              yAxisID: 'yPower',
+            },
+            {
+              label: 'Charge demandée (kW)',
               data: loadNeg,
               borderColor: '#e11d48',
-              backgroundColor: 'rgba(225, 29, 72, 0.16)',
               borderWidth: 2,
-              fill: true,
+              borderDash: [5, 3],
+              fill: false,
               stepped: 'before',
               pointRadius: 0,
               yAxisID: 'yPower',
