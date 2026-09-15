@@ -8,7 +8,14 @@
     <meta property="og:title" content="Microgrid Manager" />
     <meta property="og:description" content="Application locale de pilotage et dimensionnement de micro-réseau électrique." />
     <meta property="og:type" content="website" />
-    <link rel="stylesheet" href="/src/index.css" />
+    <!-- Feuille de style découpée en petits fichiers (<10 Ko chacun) ; l'ordre de ces
+         balises reproduit exactement la cascade de l'ancien index.css d'un seul tenant. -->
+    <link rel="stylesheet" href="css/01-properties-theme.css" />
+    <link rel="stylesheet" href="css/02-base.css" />
+    <link rel="stylesheet" href="css/03-utilities-1.css" />
+    <link rel="stylesheet" href="css/04-utilities-2.css" />
+    <link rel="stylesheet" href="css/05-utilities-3.css" />
+    <link rel="stylesheet" href="css/06-custom.css" />
   </head>
   <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
     <!-- Header -->
@@ -21,15 +28,11 @@
                 ⚡
               </span>
               <h1 class="text-xl font-bold tracking-tight text-slate-900" id="main-title">
-                Microgrid Manager
+                My Microgrid : PV + BESS + LOAD + GRID
               </h1>
-              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                100% Local (Sans serveur)
-              </span>
             </div>
             <p class="text-xs text-slate-500 mt-0.5">
-              Pilotage & dimensionnement multi-actifs (PV, BESS, Charge, Réseau) &bull; Comparatif Prévisions vs Réalisé
+              Dimensionnement, Planification, Pilotage, Simulation
             </p>
           </div>
 
@@ -42,35 +45,12 @@
             >
               🔄 Données d'exemple
             </button>
-            <button
-              id="btn-download-all-samples"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors"
-              title="Télécharger les gabarits des 6 fichiers CSV"
-            >
-              📥 Gabarits CSV (x6)
-            </button>
-            <button
-              id="btn-export-results"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors"
-              title="Exporter les résultats simulés à la minute"
-            >
-              📊 Exporter Bilan (1 min)
-            </button>
           </div>
         </div>
       </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" id="app-main">
-      <!-- Alerts -->
-      <div id="alert-curtailment" class="hidden p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
-        <span class="text-base">⚠️</span>
-        <span id="alert-curtailment-text">Avertissement : Écrêtement de production PV en cours.</span>
-      </div>
-      <div id="alert-unmet" class="hidden p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-        <span class="text-base">🚨</span>
-        <span id="alert-unmet-text">Avertissement : Dépassement de la puissance contractuelle réseau.</span>
-      </div>
 
       <!-- 1. PARTIE DIMENSIONNEMENT (En ligne, sans slider, sans sélection de stratégie) -->
       <section class="card-panel bg-white shadow-xs" id="dimensioning-section">
@@ -79,150 +59,392 @@
             <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm">
               📐
             </span>
-            <div>
-              <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                Dimensionnement du Micro-Réseau
-                <span class="px-2 py-0.5 text-[11px] font-semibold text-blue-700 bg-blue-100 rounded-full">Saisie directe & instantanée</span>
-              </h2>
-              <p class="text-xs text-slate-500">
-                Puissance PV, Capacité Batterie, Puissance Batterie et Puissance de Raccordement
-              </p>
-            </div>
+            <h2 class="text-sm font-bold text-slate-900">
+              Dimensionnement du Micro-Réseau
+            </h2>
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span id="dimensioning-area-limit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden>
+              ⚠️ Surface limite atteinte : -- m² de PV max
+            </span>
+            <span id="dimensioning-capex-limit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden>
+              ⚠️ Limite de CAPEX atteinte : -- € max
+            </span>
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span id="dimensioning-area-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white">
+              ▱ AREA : -- m²
+            </span>
+            <span id="dimensioning-capex-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white">
+              💰 CAPEX : -- €
+            </span>
           </div>
         </div>
 
         <div class="p-4 overflow-x-auto">
-          <!-- Les 4 Blocs strictement en ligne -->
-          <div class="grid grid-cols-4 gap-3.5 min-w-[760px]" id="dimensioning-blocks-row">
+          <!-- Les 5 Blocs strictement en ligne -->
+          <div class="grid grid-cols-6 gap-3.5 min-w-[950px]" id="dimensioning-blocks-row">
 
             <!-- 1. Puissance PV -->
             <div class="p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 flex flex-col justify-between" id="card-dim-pv">
               <div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-base">☀️</span>
-                  <span class="text-xs font-bold text-amber-900 uppercase tracking-wider">PV</span>
+                  <span class="text-xs font-bold text-amber-900 uppercase tracking-wider">PV :</span>
+                  <span class="text-xs font-bold text-amber-900">Puissance</span>
                 </div>
-                <p class="text-xs font-medium text-slate-600 mt-1">Puissance installée</p>
               </div>
 
               <div class="mt-3">
-                <div class="flex items-center rounded-lg border border-amber-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-amber-500">
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-pv-capacity"
-                    data-step="-10"
-                    title="Diminuer de 10 kWc"
-                  >
-                    &minus;
-                  </button>
-                  <input
-                    type="number"
-                    id="param-pv-capacity"
-                    min="0"
-                    max="5000"
-                    step="10"
-                    value="250"
-                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
-                  />
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-pv-capacity"
-                    data-step="10"
-                    title="Augmenter de 10 kWc"
-                  >
-                    +
-                  </button>
-                  <span class="pr-2.5 text-xs font-bold font-mono text-amber-700 select-none">kWc</span>
+                <div class="flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-amber-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-amber-500">
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-pv-capacity"
+                      data-step="-10"
+                      title="Diminuer de 10 kWc"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-pv-capacity"
+                      min="0"
+                      max="1000000"
+                      step="10"
+                      value="0"
+                      class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-pv-capacity"
+                      data-step="10"
+                      title="Augmenter de 10 kWc"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-xs font-bold font-mono text-amber-700 select-none">kWc</span>
+                </div>
+
+                <div class="mt-3 flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-amber-200 bg-white/70 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-amber-400">
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-pv-price"
+                      data-step="-50"
+                      title="Diminuer le prix de 50 €/kWc"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-pv-price"
+                      min="0"
+                      max="10000"
+                      step="50"
+                      value="1200"
+                      class="w-full text-center font-mono font-semibold text-sm text-slate-700 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-pv-price"
+                      data-step="50"
+                      title="Augmenter le prix de 50 €/kWc"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-[10px] font-bold font-mono text-amber-700 select-none">€/kWc</span>
+                </div>
+
+                <div class="mt-3 flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-amber-200 bg-white/70 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-amber-400">
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-pv-efficiency"
+                      data-step="-5"
+                      title="Diminuer le rendement de 50 Wc/m²"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-pv-efficiency"
+                      min="0"
+                      max="1000"
+                      step="5"
+                      value="230"
+                      class="w-full text-center font-mono font-semibold text-sm text-slate-700 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-pv-efficiency"
+                      data-step="5"
+                      title="Augmenter le rendement de 50 Wc/m²"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-[10px] font-bold font-mono text-amber-700 select-none">Wc/m²</span>
                 </div>
               </div>
             </div>
 
-            <!-- 2. Capacité Batterie -->
+            <!-- 2.1 Capacité Bde la batterie du BESS -->
             <div class="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col justify-between" id="card-dim-bess-cap">
               <div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-base">🔋</span>
-                  <span class="text-xs font-bold text-emerald-900 uppercase tracking-wider">BESS</span>
+                  <span class="text-xs font-bold text-emerald-900 uppercase tracking-wider">BESS :</span>
+                  <span class="text-xs font-bold text-emerald-900">Capacité</span>
                 </div>
-                <p class="text-xs font-medium text-slate-600 mt-1">Capacité batterie</p>
               </div>
 
               <div class="mt-3">
-                <div class="flex items-center rounded-lg border border-emerald-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500">
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-bess-capacity"
-                    data-step="-20"
-                    title="Diminuer de 20 kWh"
-                  >
-                    &minus;
-                  </button>
-                  <input
-                    type="number"
-                    id="param-bess-capacity"
-                    min="0"
-                    max="10000"
-                    step="20"
-                    value="400"
-                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
-                  />
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-bess-capacity"
-                    data-step="20"
-                    title="Augmenter de 20 kWh"
-                  >
-                    +
-                  </button>
-                  <span class="pr-2.5 text-xs font-bold font-mono text-emerald-700 select-none">kWh</span>
+                <div class="flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-emerald-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500">
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-bess-capacity"
+                      data-step="-20"
+                      title="Diminuer de 20 kWh"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-bess-capacity"
+                      min="0"
+                      max="10000"
+                      step="20"
+                      value="0"
+                      class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-bess-capacity"
+                      data-step="20"
+                      title="Augmenter de 20 kWh"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-xs font-bold font-mono text-emerald-700 select-none">kWh</span>
+                </div>
+
+                <div class="mt-3 flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-emerald-200 bg-white/70 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-emerald-400">
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-bess-capacity-price"
+                      data-step="-10"
+                      title="Diminuer le prix de 10 €/kWh"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-bess-capacity-price"
+                      min="0"
+                      max="10000"
+                      step="10"
+                      value="250"
+                      class="w-full text-center font-mono font-semibold text-sm text-slate-700 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-bess-capacity-price"
+                      data-step="10"
+                      title="Augmenter le prix de 10 €/kWh"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-[10px] font-bold font-mono text-emerald-700 select-none">€/kWh</span>
                 </div>
               </div>
             </div>
 
-            <!-- 3. Puissance Batterie -->
+            <!-- 2.2 Puissance de l'onduleur du BESS -->
             <div class="p-3.5 rounded-xl border border-teal-200 bg-teal-50/40 flex flex-col justify-between" id="card-dim-bess-pwr">
               <div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-base">⚡</span>
-                  <span class="text-xs font-bold text-teal-900 uppercase tracking-wider">BESS</span>
+                  <span class="text-xs font-bold text-teal-900 uppercase tracking-wider">BESS :</span>
+                  <span class="text-xs font-bold text-teal-900">Onduleur</span>
                 </div>
-                <p class="text-xs font-medium text-slate-600 mt-1">Puissance onduleur</p>
               </div>
 
               <div class="mt-3">
-                <div class="flex items-center rounded-lg border border-teal-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-teal-500">
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-bess-power"
-                    data-step="-10"
-                    title="Diminuer de 10 kW"
-                  >
-                    &minus;
-                  </button>
-                  <input
-                    type="number"
-                    id="param-bess-power"
-                    min="0"
-                    max="5000"
-                    step="10"
-                    value="150"
-                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
-                  />
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-bess-power"
-                    data-step="10"
-                    title="Augmenter de 10 kW"
-                  >
-                    +
-                  </button>
-                  <span class="pr-2.5 text-xs font-bold font-mono text-teal-700 select-none">kW</span>
+                <div class="flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-teal-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-teal-500">
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-bess-power"
+                      data-step="-10"
+                      title="Diminuer de 10 kW"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-bess-power"
+                      min="0"
+                      max="5000"
+                      step="10"
+                      value="0"
+                      class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-bess-power"
+                      data-step="10"
+                      title="Augmenter de 10 kW"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-xs font-bold font-mono text-teal-700 select-none">kW</span>
+                </div>
+
+                <div class="mt-3 flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-teal-200 bg-white/70 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-teal-400">
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-bess-power-price"
+                      data-step="-10"
+                      title="Diminuer le prix de 10 €/kW"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-bess-power-price"
+                      min="0"
+                      max="10000"
+                      step="10"
+                      value="150"
+                      class="w-full text-center font-mono font-semibold text-sm text-slate-700 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2 py-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                      data-target="param-bess-power-price"
+                      data-step="10"
+                      title="Augmenter le prix de 10 €/kW"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-[10px] font-bold font-mono text-teal-700 select-none">€/kW</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2.3 Rendement du BESS (symetrique en charge et decharge) -->
+            <div class="p-3.5 rounded-xl border border-cyan-200 bg-cyan-50/40 flex flex-col justify-between" id="card-dim-bess-eff">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-base">🔄</span>
+                  <span class="text-xs font-bold text-cyan-900 uppercase tracking-wider">BESS :</span>
+                  <span class="text-xs font-bold text-cyan-900">Rendement</span>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <div class="flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-cyan-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500">
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-bess-eff"
+                      data-step="-1"
+                      title="Diminuer de 1%"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-bess-eff"
+                      min="50"
+                      max="100"
+                      step="1"
+                      value="92"
+                      class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-bess-eff"
+                      data-step="1"
+                      title="Augmenter de 1%"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-xs font-bold font-mono text-cyan-700 select-none">%</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 3 Puissance nominale de la Charge -->
+            <div class="p-3.5 rounded-xl border border-rose-200 bg-rose-50/40 flex flex-col justify-between" id="card-dim-bess-eff">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-base">🏠</span>
+                  <span class="text-xs font-bold text-rose-900 uppercase tracking-wider">LOAD :</span>
+                  <span class="text-xs font-bold text-rose-900">Puissance</span>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <div class="flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-rose-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-rose-500">
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-load-power"
+                      data-step="10"
+                      title="Diminuer de 1%"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-load-power"
+                      min="0"
+                      max="1000000"
+                      step="1"
+                      value="70"
+                      class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-load-power"
+                      data-step="10"
+                      title="Augmenter de 1%"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-xs font-bold font-mono text-rose-700 select-none">%</span>
                 </div>
               </div>
             </div>
@@ -232,41 +454,43 @@
               <div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-base">🌐</span>
-                  <span class="text-xs font-bold text-blue-900 uppercase tracking-wider">GRID</span>
+                  <span class="text-xs font-bold text-blue-900 uppercase tracking-wider">GRID :</span>
+                  <span class="text-xs font-bold text-blue-900">Raccordement</span>
                 </div>
-                <p class="text-xs font-medium text-slate-600 mt-1">Puissance raccordement</p>
               </div>
 
               <div class="mt-3">
-                <div class="flex items-center rounded-lg border border-blue-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-grid-contract"
-                    data-step="-10"
-                    title="Diminuer de 10 kW"
-                  >
-                    &minus;
-                  </button>
-                  <input
-                    type="number"
-                    id="param-grid-contract"
-                    min="0"
-                    max="5000"
-                    step="10"
-                    value="160"
-                    class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
-                  />
-                  <button
-                    type="button"
-                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
-                    data-target="param-grid-contract"
-                    data-step="10"
-                    title="Augmenter de 10 kW"
-                  >
-                    +
-                  </button>
-                  <span class="pr-2.5 text-xs font-bold font-mono text-blue-700 select-none">kW</span>
+                <div class="flex items-center gap-1.5">
+                  <div class="flex-1 flex items-center rounded-lg border border-blue-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-grid-contract"
+                      data-step="-10"
+                      title="Diminuer de 10 kW"
+                    >
+                      &minus;
+                    </button>
+                    <input
+                      type="number"
+                      id="param-grid-contract"
+                      min="0"
+                      max="5000"
+                      step="10"
+                      value="40"
+                      class="w-full text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                    />
+                    <button
+                      type="button"
+                      class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                      data-target="param-grid-contract"
+                      data-step="10"
+                      title="Augmenter de 10 kW"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span class="text-xs font-bold font-mono text-blue-700 select-none">kW</span>
                 </div>
               </div>
             </div>
@@ -277,141 +501,106 @@
 
       <!-- 2. PARTIE PLANIFICATION -->
       <section class="card-panel bg-white shadow-xs space-y-5" id="planning-section">
+      
         <!-- Header de la section Planification -->
         <div class="card-panel-header flex flex-col md:flex-row md:items-center justify-between gap-3 py-3 px-4 bg-slate-50/90 border-b border-slate-200">
           <div class="flex items-center gap-2.5">
             <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-sm">
-              📈
+              ⌚
+              <!--📈-->
             </span>
             <div>
               <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                Partie Planification
-                <span class="px-2 py-0.5 text-[11px] font-semibold text-indigo-700 bg-indigo-100 rounded-full">Pilotage & Équilibre 24h</span>
+                Planification - Équilibre 24h
               </h2>
               <p class="text-xs text-slate-500">
-                Courbe 1 : Plan de production / consommation &bull; Courbe 2 : Pilotage interactif batterie (BESS)
+                Stratégie de production / consommation
               </p>
             </div>
           </div>
 
           <!-- Indicateurs d'état de planification -->
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span id="planning-grid-contract-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-              🌐 Limite Réseau : 160 kW
+                       
+            <!--span id="planning-deficit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden-->
+            <span id="planning-deficit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden>
+              ⚠️ Manque : -- kWh non couverts
             </span>
-            <span id="planning-deficit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              ✓ Charge 100% couverte
+          
+            <!-- Alertes : SoC ou puissance hors limites pour l'heure sélectionnée -->
+            <span id="planning-bess-power-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden>
+              ⚠️ BESS : Puissance hors limite
             </span>
-            <span id="planning-soc-end-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+            
+            <span id="planning-bess-soc-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden>
+              ⚠️ BESS : SoC hors limites
+            </span>
+              
+            <!--span id="planning-soc-end-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
               🔋 SoC fin : --%
+            </span-->
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span id="planning-opex-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white">
+              💰 OPEX : -- €
             </span>
           </div>
+
         </div>
 
         <div class="p-4 space-y-6">
           <!-- COURBE 1 : Plan de production / consommation -->
           <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs" id="panel-planning-chart1">
-            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>Courbe 1 : Plan de production / consommation</span>
-                  <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-200 text-slate-700">Escalier</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Plan prod PV &bull; Plan charge &bull; Réseau plafonné &bull; Manque d'énergie &bull; Prix de l'électricité
-                </p>
-              </div>
-              <div class="flex items-center gap-2 text-xs">
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-amber-400"></span> PV
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-rose-500"></span> Charge
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-blue-600"></span> Réseau
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-red-600"></span> Déficit
-                </span>
-                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <span class="w-2.5 h-2.5 rounded-xs bg-amber-600"></span> Prix Spot
-                </span>
-              </div>
-            </div>
-
-            <!-- Canvas Courbe 1 -->
+		  
+			<!-- Canvas Courbe 1 -->
             <div class="p-3.5 h-[340px] relative">
               <canvas id="chart-planning-power"></canvas>
             </div>
 
-            <!-- Guide explicatif physique Courbe 1 -->
-            <div class="px-4 py-2.5 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
-              <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>
-                  <strong class="text-slate-700">Réseau :</strong> la zone bleue est plafonnée à la puissance contractuelle de raccordement.
-                </span>
-                <span>
-                  <strong class="text-rose-700">Déficit :</strong> si la demande excède le réseau, la partie qui manque pour la charge correspond exactement au manque réseau.
-                </span>
-              </div>
-              <span class="text-slate-400 font-mono">Axe droit : Prix électricité spot (€/MWh)</span>
+			<!-- Canvas Courbe 2 -->
+            <div class="p-3.5 h-[320px] relative">
+              <canvas id="chart-planning-bess"></canvas>
             </div>
-          </div>
-
-          <!-- COURBE 2 : Pilotage interactif BESS & SoC -->
-          <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs" id="panel-planning-chart2">
-            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>Courbe 2 : Pilotage</span>
-                  <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800">Interactif</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Histogramme de puissance batterie (<strong>En haut = Décharge</strong>, <strong>En bas = Charge</strong>) & Niveau de SoC (%)
-                </p>
-              </div>
-
-              <!-- Profils rapides d'optimisation -->
-              <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                <span class="text-slate-400 text-[11px] mr-1">Profils :</span>
-                <button
-                  type="button"
-                  id="btn-profile-pv"
-                  class="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-medium transition-colors"
-                  title="Charger lors du surplus PV et décharger lors de la pointe de consommation"
-                >
-                  ☀️ Autoconsommation
-                </button>
-                <button
-                  type="button"
-                  id="btn-profile-arbitrage"
-                  class="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-medium transition-colors"
-                  title="Charger aux heures de prix bas et décharger aux heures de prix élevé"
-                >
-                  💶 Arbitrage Spot
-                </button>
-                <button
-                  type="button"
-                  id="btn-profile-default"
-                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
-                  title="Rétablir le profil initial de prévision"
-                >
-                  🔄 Initial
-                </button>
-                <button
-                  type="button"
-                  id="btn-profile-zero"
-                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
-                  title="Mettre toutes les consignes batterie à 0 kW"
-                >
-                  🧹 0 kW
-                </button>
-              </div>
-            </div>
-
+						
             <!-- Barre de contrôle interactif de la barre sélectionnée -->
             <div class="px-4 py-3 bg-slate-100/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3" id="planning-bar-controller">
+            
+              <!-- Sélecteur SoC initial -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">SoC initial</span>
+                <div class="flex items-center rounded-lg border border-indigo-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                    data-target="param-bess-initial-soc"
+                    data-step="-5"
+                    title="Diminuer de 5 %"
+                  >
+                    &minus;
+                  </button>
+                  <input
+                    type="number"
+                    id="param-bess-initial-soc"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value="45"
+                    class="w-20 text-center font-mono font-bold text-sm text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                  />
+                  <button
+                    type="button"
+                    class="btn-step px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-xs select-none"
+                    data-target="param-bess-initial-soc"
+                    data-step="5"
+                    title="Augmenter de 5 %"
+                  >
+                    +
+                  </button>
+                </div>
+                <span class="text-xs font-bold font-mono text-indigo-700 select-none">%</span>
+              </div>
+            
               <!-- Sélecteur d'heure -->
               <div class="flex items-center gap-2">
                 <button
@@ -436,87 +625,69 @@
                 </button>
               </div>
 
-              <!-- Statut et valeur de consigne -->
-              <div class="flex items-center gap-3">
-                <div class="text-center">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Consigne BESS</span>
-                  <span id="planning-power-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
-                    +80 kW (Décharge ⚡)
-                  </span>
-                </div>
-                <div class="text-center">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC résultant</span>
-                  <span id="planning-hour-soc-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
-                    65.0%
-                  </span>
-                </div>
+              <!-- SoC précédent (avant l'heure sélectionnée) -->
+              <div class="text-center">
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC précédent</span>
+                <span id="planning-hour-soc-initial-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
+                  45.0%
+                </span>
               </div>
 
-              <!-- Curseur Slider interactif -->
-              <div class="flex items-center gap-2 flex-1 max-w-xs min-w-[200px]">
-                <span class="text-[11px] font-mono text-amber-700 font-medium whitespace-nowrap" id="planning-slider-min-lbl">-150 kW</span>
-                <input
-                  type="range"
-                  id="planning-bess-slider"
-                  min="-150"
-                  max="150"
-                  step="5"
-                  value="0"
-                  class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer accent-indigo-600"
-                />
-                <span class="text-[11px] font-mono text-emerald-700 font-medium whitespace-nowrap" id="planning-slider-max-lbl">+150 kW</span>
+              <!-- Consigne BESS : champ numérique avec boutons +/- -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500">Consigne BESS</span>
+                <div class="flex items-center rounded-lg border border-indigo-300 bg-white shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+                  <button
+                    type="button"
+                    id="btn-plan-power-minus"
+                    class="px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    title="Diminuer de 10 kW"
+                  >
+                    &minus;
+                  </button>
+                  <input
+                    type="number"
+                    id="planning-bess-power-input"
+                    min="-10000"
+                    max="10000"
+                    step="5"
+                    value="0"
+                    class="w-20 text-center font-mono font-bold text-lg text-slate-900 bg-transparent border-0 focus:outline-hidden py-1"
+                  />
+                  <button
+                    type="button"
+                    id="btn-plan-power-plus"
+                    class="px-2.5 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors font-bold text-sm select-none"
+                    title="Augmenter de 10 kW"
+                  >
+                    +
+                  </button>
+                </div>
+                <span class="text-xs font-bold font-mono text-slate-600 select-none">kW</span>
               </div>
 
-              <!-- Boutons de pas et actions rapides -->
-              <div class="flex items-center gap-1.5 text-xs">
-                <button
-                  type="button"
-                  class="btn-bess-step px-2 py-1 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-mono font-bold transition-colors"
-                  data-step="-10"
-                  title="Diminuer de 10 kW"
-                >
-                  &minus;10
-                </button>
-                <button
-                  type="button"
-                  class="btn-bess-step px-2 py-1 rounded bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-mono font-bold transition-colors"
-                  data-step="10"
-                  title="Augmenter de 10 kW"
-                >
-                  +10
-                </button>
-                <div class="h-5 w-px bg-slate-300 mx-1"></div>
-                <button
-                  type="button"
-                  id="btn-bess-max-discharge"
-                  class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors shadow-2xs"
-                  title="Décharger à la puissance maximale"
-                >
-                  ⚡ Décharge Max
-                </button>
+              <!-- SoC suivant (résultant de l'heure sélectionnée) -->
+              <div class="text-center">
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">SoC suivant</span>
+                <span id="planning-hour-soc-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-indigo-50 text-indigo-700">
+                  65.0%
+                </span>
+              </div>
+              
+              <div class="flex items-center gap-1.5">
                 <button
                   type="button"
                   id="btn-bess-zero"
-                  class="px-2 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold transition-colors"
+                  class="ml-1 px-2 py-1 rounded bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs transition-colors"
                   title="Consigne à zéro (veille)"
                 >
-                  ⏸ 0 kW
-                </button>
-                <button
-                  type="button"
-                  id="btn-bess-max-charge"
-                  class="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold transition-colors shadow-2xs"
-                  title="Charger à la puissance maximale"
-                >
-                  🔋 Charge Max
+                  Reset
                 </button>
               </div>
+              
             </div>
 
-            <!-- Canvas Courbe 2 -->
-            <div class="p-3.5 h-[320px] relative">
-              <canvas id="chart-planning-bess"></canvas>
-            </div>
+            
 
             <!-- Légende & instructions sous Courbe 2 -->
             <div class="px-4 py-2 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
@@ -630,6 +801,16 @@
           <span class="text-[10px] text-slate-500 truncate" id="kpi-pv-mae" title="Erreur moyenne absolue PV">MAE PV: --</span>
         </div>
       </section>
+
+      <!-- Alerts -->
+      <div id="alert-curtailment" class="hidden p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+        <span class="text-base">⚠️</span>
+        <span id="alert-curtailment-text">Avertissement : Écrêtement de production PV en cours.</span>
+      </div>
+      <div id="alert-unmet" class="hidden p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+        <span class="text-base">🚨</span>
+        <span id="alert-unmet-text">Avertissement : Dépassement de la puissance contractuelle réseau.</span>
+      </div>
 
       <!-- Real-Time Cursor & Synoptic Pilotage Bar -->
       <section class="card-panel p-4" id="realtime-pilotage-section">
@@ -869,7 +1050,7 @@
                 </tr>
               </thead>
               <tbody id="files-table-body" class="divide-y divide-slate-100 text-xs">
-                <!-- Dynamically rendered by main.js -->
+                <!-- Dynamically rendered by js/10-planning-ui-files.js -->
               </tbody>
             </table>
           </div>
@@ -883,6 +1064,21 @@
       </footer>
     </main>
 
-    <script type="module" src="/src/main.js"></script>
+    <script src="vendor/papaparse.min.js"></script>
+    <script src="vendor/chart.umd.min.js"></script>
+    <!-- Code applicatif découpé en petits fichiers (<10 Ko chacun), chargés dans cet
+         ordre car ce sont des scripts classiques partageant une seule portée globale. -->
+    <script src="js/01-state.js"></script>
+    <script src="js/02-simulation-utils.js"></script>
+    <script src="js/03-simulation-engine.js"></script>
+    <script src="js/04-overview-charts-a.js"></script>
+    <script src="js/05-overview-charts-b.js"></script>
+    <script src="js/06-planning-data.js"></script>
+    <script src="js/07-planning-chart-setup.js"></script>
+    <script src="js/08-planning-chart-power.js"></script>
+    <script src="js/09-planning-chart-bess.js"></script>
+    <script src="js/09b-planning-profiles.js"></script>
+    <script src="js/10-planning-ui-files.js"></script>
+    <script src="js/11-params-init.js"></script>
   </body>
 </html>
