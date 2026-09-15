@@ -33,6 +33,7 @@ function getPlanningHourlyData() {
   let currentSoc = state.params.bessInitialSocPercent || 45;
   let currentSocUnlimited = currentSoc;
   let totalDeficitKwh = 0;
+  let opexPlan = 0;
 
   for (let h = 0; h < 24; h++) {
     const hh = String(h).padStart(2, '0');
@@ -130,6 +131,8 @@ function getPlanningHourlyData() {
     gridPlan.push(Number(pGrid.toFixed(1)));
     gridPlanRaw.push(Number(netDemand.toFixed(1)));
     deficit.push(Number(pDeficit.toFixed(1)));
+	
+	opexPlan += pGrid * priceH / 1000;
   }
 
   return {
@@ -156,8 +159,11 @@ function getPlanningHourlyData() {
     socMaxLimit: maxSoc,
     totalDeficitKwh: Number(totalDeficitKwh.toFixed(1)),
     finalSoc: Number(currentSoc.toFixed(1)),
+	opexPlan,
   };
 }
+
+
 
 function updatePlanningControllerUI(planData) {
   const h = state.selectedPlanningHour;
@@ -207,6 +213,19 @@ function updatePlanningControllerUI(planData) {
     } else {
       badgeBessSocLimits.hidden = true;
     }
+  }
+  
+  if (planData && planData.opexPlan  !== undefined) {
+	setText('planning-opex-badge', `💰 OPEX (jour) : ${formatEur(planData.opexPlan)}`);
+	const limitBadge = document.getElementById('planning-opex-limit-badge');
+	if (limitBadge) {
+	  if (state.params.opexLimitEnabled && planData.opexPlan > state.params.opexLimitEurPerDay) {
+		limitBadge.hidden = false;
+		limitBadge.textContent = `⚠️ OPEX : ${formatEur(state.params.opexLimitEurPerDay)} max/jour`;
+      } else {
+		limitBadge.hidden = true;
+      }
+	}
   }
 }
 

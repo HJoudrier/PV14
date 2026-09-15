@@ -43,9 +43,9 @@ function renderDetailModalContent(type) {
     setText('detail-modal-title', '💰 Détail du CAPEX');
     bodyEl.innerHTML = renderCapexDetailHtml();
     bindCapexLimitHandlers();
-  } else if (type === 'opex') {
+  } else if (type === 'opexPlan') {
     setText('detail-modal-title', "💰 Détail de l'OPEX");
-    bodyEl.innerHTML = renderOpexDetailHtml();
+    bodyEl.innerHTML = renderOpexPlanDetailHtml();
     bindOpexHandlers();
   }
 }
@@ -211,7 +211,55 @@ function bindCapexLimitHandlers() {
 /**
  * OPEX — daily grid arbitrage result + battery cycling wear cost
  */
-function renderOpexDetailHtml() {
+function renderOpexPlanDetailHtml() {
+  const p = state.params;
+  const opex = computeOpexBreakdown();
+  const limitOn = p.opexLimitEnabled;
+  const limit = p.opexLimitEurPerDay;
+
+  return `
+    <p class="detail-note">
+      L'OPEX n'est pas un coût fixe : il traduit le résultat économique journalier de l'arbitrage
+      avec le réseau (achats vs. ventes) et le coût d'usure de la batterie lié à son cyclage.
+    </p>
+    <table class="detail-table">
+      <thead>
+        <tr><th>Poste</th><th>Actif</th><th class="num">Montant</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Achats réseau (import)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.gridPurchaseCostEur)}</td></tr>
+        <tr><td>Ventes réseau (injection)</td><td>🌐 GRID</td><td class="num">${formatEur(-opex.gridSaleRevenueEur)}</td></tr>
+        <tr><td>Solde net réseau (arbitrage)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.gridNetEur)}</td></tr>
+        <tr><td>Usure batterie (cyclage)</td><td>🔋 BESS</td><td class="num">${formatEur(opex.bessCyclingCostEur)}</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td colspan="2">Total OPEX (jour simulé)</td><td class="num">${formatEur(opex.total)}</td></tr>
+      </tfoot>
+    </table>
+    <p class="detail-note">
+      Cyclage batterie : ${opex.cyclesPerDay.toFixed(2)} cycles/jour × ${formatEur(opex.costPerCycleEur)}/cycle
+      (CAPEX batterie ÷ durée de vie de
+      <input type="number" min="1" step="500" id="modal-opex-cycle-life" value="${opex.cycleLife}" class="inline-number" />
+      cycles).
+    </p>
+
+    <div class="limit-config">
+      <div class="limit-config-title">Limite d'OPEX</div>
+      <label class="limit-config-row">
+        <input type="checkbox" id="modal-opex-limit-toggle" ${limitOn ? 'checked' : ''} />
+        Activer une limite d'OPEX journalier
+      </label>
+      <label class="limit-config-row">
+        <span>OPEX maximal</span>
+        <input type="number" min="0" step="10" id="modal-opex-limit-value" value="${limit}" ${limitOn ? '' : 'disabled'} />
+        <span>€ / jour</span>
+      </label>
+      <p class="limit-status" id="modal-opex-status">${limitStatusText(opex.total, limit, limitOn, formatEur)}</p>
+    </div>
+  `;
+}
+
+function renderOpexSimDetailHtml() {
   const p = state.params;
   const opex = computeOpexBreakdown();
   const limitOn = p.opexLimitEnabled;
@@ -267,7 +315,7 @@ function bindOpexHandlers() {
       state.params.bessCycleLifeCycles = v;
       saveStateToLocalStorage();
       updateOpexBadge();
-      renderDetailModalContent('opex');
+      renderDetailModalContent('opexPlan');
     });
   }
 
@@ -312,11 +360,11 @@ function bindDetailModalListeners() {
   const closeBtn = document.getElementById('detail-modal-close');
   const areaBtn = document.getElementById('btn-area-detail');
   const capexBtn = document.getElementById('btn-capex-detail');
-  const opexBtn = document.getElementById('btn-opex-detail');
+  const opexPlanBtn = document.getElementById('btn-opexPlan-detail');
 
   if (areaBtn) areaBtn.addEventListener('click', () => openDetailModal('area'));
   if (capexBtn) capexBtn.addEventListener('click', () => openDetailModal('capex'));
-  if (opexBtn) opexBtn.addEventListener('click', () => openDetailModal('opex'));
+  if (opexPlanBtn) opexPlanBtn.addEventListener('click', () => openDetailModal('opexPlan'));
 
   if (closeBtn) closeBtn.addEventListener('click', closeDetailModal);
   if (overlay) {

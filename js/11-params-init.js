@@ -173,6 +173,7 @@ function computeCapex(params) {
   return { pv, bessCapacity, bessPower, total: pv + bessCapacity + bessPower };
 }
 
+
 /**
  * OPEX is not a fixed operating cost: it reflects the daily economic outcome
  * of the microgrid's arbitrage with the grid (purchases vs. sales) plus the
@@ -242,10 +243,10 @@ function updateCapexBadge() {
 }
 
 function updateOpexBadge() {
-  const opex = computeOpexBreakdown();
-  setText('planning-opex-badge', `💰 OPEX (jour) : ${formatEur(opex.total)}`);
+  const opex = computeOpex();
+  setText('simulation-opex-badge', `💰 OPEX (jour) : ${formatEur(opex.total)}`);
 
-  const limitBadge = document.getElementById('planning-opex-limit-badge');
+  const limitBadge = document.getElementById('simulation-opex-limit-badge');
   if (limitBadge) {
     if (state.params.opexLimitEnabled && opex.total > state.params.opexLimitEurPerDay) {
       limitBadge.hidden = false;
@@ -273,7 +274,7 @@ function recomputeAndRender() {
   renderFilesTable();
   updateCapexBadge();
   updateAreaBadge();
-  updateOpexBadge();
+//  updateOpexBadge();
   refreshOpenDetailModal();
 }
 
