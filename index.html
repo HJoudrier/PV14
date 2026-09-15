@@ -728,105 +728,6 @@
         </div>
       </section>
 
-      <!-- KPI Summary Cards -->
-      <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5" id="kpi-section">
-        <!-- Card 1: Autoconsommation -->
-        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-autoconsommation">
-          <div class="flex items-center justify-between text-slate-500 text-xs">
-            <span>Autoconsommation</span>
-            <span class="text-amber-500">☀️</span>
-          </div>
-          <div class="my-1.5">
-            <span class="text-2xl font-bold tracking-tight text-slate-900" id="kpi-autoconsommation">--%</span>
-          </div>
-          <span class="text-[11px] text-slate-500 truncate">PV consommé sur site</span>
-        </div>
-
-        <!-- Card 2: Autoproduction -->
-        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-autoproduction">
-          <div class="flex items-center justify-between text-slate-500 text-xs">
-            <span>Autoproduction</span>
-            <span class="text-emerald-500">🔋</span>
-          </div>
-          <div class="my-1.5">
-            <span class="text-2xl font-bold tracking-tight text-slate-900" id="kpi-autoproduction">--%</span>
-          </div>
-          <span class="text-[11px] text-slate-500 truncate">Besoins couverts en local</span>
-        </div>
-
-        <!-- Card 3: Économies nettes -->
-        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-savings">
-          <div class="flex items-center justify-between text-slate-500 text-xs">
-            <span>Économies nettes</span>
-            <span class="text-blue-500">💶</span>
-          </div>
-          <div class="my-1.5">
-            <span class="text-2xl font-bold tracking-tight text-emerald-600" id="kpi-savings">-- €</span>
-          </div>
-          <span class="text-[11px] text-slate-500 truncate">Facture : <strong id="kpi-bill" class="font-medium text-slate-700">-- €</strong></span>
-        </div>
-
-        <!-- Card 4: Bilan PV & Charge -->
-        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-energies">
-          <div class="flex items-center justify-between text-slate-500 text-xs">
-            <span>Énergie Jour</span>
-            <span class="text-slate-400">⚡</span>
-          </div>
-          <div class="space-y-0.5 my-1 text-xs">
-            <div class="flex justify-between">
-              <span class="text-amber-600 font-medium">PV :</span>
-              <span id="kpi-pv-total" class="font-semibold text-slate-800">-- kWh</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-rose-600 font-medium">Charge :</span>
-              <span id="kpi-load-total" class="font-semibold text-slate-800">-- kWh</span>
-            </div>
-          </div>
-          <span class="text-[11px] text-slate-500">Production & demande</span>
-        </div>
-
-        <!-- Card 5: Échanges Réseau -->
-        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-grid">
-          <div class="flex items-center justify-between text-slate-500 text-xs">
-            <span>Réseau (GRID)</span>
-            <span class="text-blue-500">🌐</span>
-          </div>
-          <div class="space-y-0.5 my-1 text-xs">
-            <div class="flex justify-between">
-              <span class="text-blue-600 font-medium">Soutirage :</span>
-              <span id="kpi-grid-import" class="font-semibold text-slate-800">-- kWh</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-purple-600 font-medium">Injection :</span>
-              <span id="kpi-grid-export" class="font-semibold text-slate-800">-- kWh</span>
-            </div>
-          </div>
-          <span class="text-[11px] text-slate-500">Flux avec le réseau</span>
-        </div>
-
-        <!-- Card 6: Cycles BESS & Précision -->
-        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-bess-status">
-          <div class="flex items-center justify-between text-slate-500 text-xs">
-            <span>Batterie & Écarts</span>
-            <span class="text-emerald-500">🎯</span>
-          </div>
-          <div class="my-1.5">
-            <span class="text-xl font-bold tracking-tight text-slate-900" id="kpi-bess-cycles">-- cycles</span>
-          </div>
-          <span class="text-[10px] text-slate-500 truncate" id="kpi-pv-mae" title="Erreur moyenne absolue PV">MAE PV: --</span>
-        </div>
-      </section>
-
-      <!-- Alerts -->
-      <div id="alert-curtailment" class="hidden p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
-        <span class="text-base">⚠️</span>
-        <span id="alert-curtailment-text">Avertissement : Écrêtement de production PV en cours.</span>
-      </div>
-      <div id="alert-unmet" class="hidden p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-        <span class="text-base">🚨</span>
-        <span id="alert-unmet-text">Avertissement : Dépassement de la puissance contractuelle réseau.</span>
-      </div>
-
       <!-- Real-Time Cursor & Synoptic Pilotage Bar -->
       <section class="card-panel p-4" id="realtime-pilotage-section">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-100">
@@ -944,6 +845,16 @@
         </div>
       </section>
 
+      <!-- Alerts -->
+      <div id="alert-curtailment" class="hidden p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+        <span class="text-base">⚠️</span>
+        <span id="alert-curtailment-text">Avertissement : Écrêtement de production PV en cours.</span>
+      </div>
+      <div id="alert-unmet" class="hidden p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+        <span class="text-base">🚨</span>
+        <span id="alert-unmet-text">Avertissement : Dépassement de la puissance contractuelle réseau.</span>
+      </div>
+
       <!-- Main Interactive Graphs Grid -->
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="charts-section">
         <!-- Chart 1: Flux de puissances en temps réel -->
@@ -1014,6 +925,95 @@
           <div class="p-3.5 h-[260px] relative">
             <canvas id="chart-grid-price"></canvas>
           </div>
+        </div>
+      </section>
+
+<!-- KPI Summary Cards -->
+      <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5" id="kpi-section">
+        <!-- Card 1: Autoconsommation -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-autoconsommation">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Autoconsommation</span>
+            <span class="text-amber-500">☀️</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-2xl font-bold tracking-tight text-slate-900" id="kpi-autoconsommation">--%</span>
+          </div>
+          <span class="text-[11px] text-slate-500 truncate">PV consommé sur site</span>
+        </div>
+
+        <!-- Card 2: Autoproduction -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-autoproduction">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Autoproduction</span>
+            <span class="text-emerald-500">🔋</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-2xl font-bold tracking-tight text-slate-900" id="kpi-autoproduction">--%</span>
+          </div>
+          <span class="text-[11px] text-slate-500 truncate">Besoins couverts en local</span>
+        </div>
+
+        <!-- Card 3: Économies nettes -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-savings">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Économies nettes</span>
+            <span class="text-blue-500">💶</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-2xl font-bold tracking-tight text-emerald-600" id="kpi-savings">-- €</span>
+          </div>
+          <span class="text-[11px] text-slate-500 truncate">Facture : <strong id="kpi-bill" class="font-medium text-slate-700">-- €</strong></span>
+        </div>
+
+        <!-- Card 4: Bilan PV & Charge -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-energies">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Énergie Jour</span>
+            <span class="text-slate-400">⚡</span>
+          </div>
+          <div class="space-y-0.5 my-1 text-xs">
+            <div class="flex justify-between">
+              <span class="text-amber-600 font-medium">PV :</span>
+              <span id="kpi-pv-total" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-rose-600 font-medium">Charge :</span>
+              <span id="kpi-load-total" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+          </div>
+          <span class="text-[11px] text-slate-500">Production & demande</span>
+        </div>
+
+        <!-- Card 5: Échanges Réseau -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-grid">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Réseau (GRID)</span>
+            <span class="text-blue-500">🌐</span>
+          </div>
+          <div class="space-y-0.5 my-1 text-xs">
+            <div class="flex justify-between">
+              <span class="text-blue-600 font-medium">Soutirage :</span>
+              <span id="kpi-grid-import" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-purple-600 font-medium">Injection :</span>
+              <span id="kpi-grid-export" class="font-semibold text-slate-800">-- kWh</span>
+            </div>
+          </div>
+          <span class="text-[11px] text-slate-500">Flux avec le réseau</span>
+        </div>
+
+        <!-- Card 6: Cycles BESS & Précision -->
+        <div class="card-panel p-3.5 flex flex-col justify-between" id="card-bess-status">
+          <div class="flex items-center justify-between text-slate-500 text-xs">
+            <span>Batterie & Écarts</span>
+            <span class="text-emerald-500">🎯</span>
+          </div>
+          <div class="my-1.5">
+            <span class="text-xl font-bold tracking-tight text-slate-900" id="kpi-bess-cycles">-- cycles</span>
+          </div>
+          <span class="text-[10px] text-slate-500 truncate" id="kpi-pv-mae" title="Erreur moyenne absolue PV">MAE PV: --</span>
         </div>
       </section>
 
