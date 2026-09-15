@@ -187,7 +187,37 @@ function renderBessChart(planData, hoursExt) {
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { boxWidth: 12, font: { size: 11 }, color: '#475569' },
+              labels: {
+                boxWidth: 12,
+                font: { size: 11 },
+                color: '#475569',
+                // "Limite SoC max"/"Limite SoC min" (index 4/5) et "Limite puissance
+                // (charge)"/"Limite puissance (décharge)" (index 6/7) sont chacune deux
+                // datasets distincts pour une seule et même grandeur : on les fusionne
+                // sous une unique légende "Limite SoC" / "Limite puissance".
+                generateLabels: (chart) => {
+                  const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                  return items
+                    .filter((item) => item.datasetIndex !== 5 && item.datasetIndex !== 7)
+                    .map((item) => {
+                      if (item.datasetIndex === 4) item.text = 'Limite SoC';
+                      if (item.datasetIndex === 6) item.text = 'Limite puissance';
+                      return item;
+                    });
+                },
+              },
+              onClick: (evt, legendItem, legend) => {
+                const chart = legend.chart;
+                const pairedIndex = { 4: 5, 6: 7 }[legendItem.datasetIndex];
+                if (pairedIndex !== undefined) {
+                  const hidden = !chart.getDatasetMeta(legendItem.datasetIndex).hidden;
+                  chart.getDatasetMeta(legendItem.datasetIndex).hidden = hidden;
+                  chart.getDatasetMeta(pairedIndex).hidden = hidden;
+                  chart.update();
+                } else {
+                  Chart.defaults.plugins.legend.onClick.call(legend, evt, legendItem, legend);
+                }
+              },
             },
             tooltip: {
               enabled: true,

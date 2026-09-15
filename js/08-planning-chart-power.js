@@ -189,25 +189,27 @@ function renderPowerChart(planData, hoursExt) {
                 font: { size: 11 },
                 color: '#475569',
                 // "PV plan"/"PV prévision" (index 0/1), "Charge fournie"/"Charge demandée"
-                // (index 2/3) et "Réseau fourni"/"Réseau demandé" (index 4/5) sont chacune
-                // deux datasets distincts (aire remplie + contour) pour une seule et même
-                // grandeur physique : on les fusionne sous une unique légende "PV (kW)" /
-                // "Charge (kW)" / "Réseau (kW)".
+                // (index 2/3), "Réseau fourni"/"Réseau demandé" (index 4/5) et "Limite
+                // raccordement"/"Limite injection" (index 7/8) sont chacune deux datasets
+                // distincts pour une seule et même grandeur : on les fusionne sous une
+                // unique légende "PV (kW)" / "Charge (kW)" / "Réseau (kW)" / "Limite
+                // puissance réseau".
                 generateLabels: (chart) => {
                   const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
                   return items
-                    .filter((item) => item.datasetIndex !== 1 && item.datasetIndex !== 3 && item.datasetIndex !== 5)
+                    .filter((item) => item.datasetIndex !== 1 && item.datasetIndex !== 3 && item.datasetIndex !== 5 && item.datasetIndex !== 8)
                     .map((item) => {
                       if (item.datasetIndex === 0) item.text = 'PV';
                       if (item.datasetIndex === 2) item.text = 'Charge';
                       if (item.datasetIndex === 4) item.text = 'Réseau';
+                      if (item.datasetIndex === 7) item.text = 'Limite puissance réseau';
                       return item;
                     });
                 },
               },
               onClick: (evt, legendItem, legend) => {
                 const chart = legend.chart;
-                const pairedIndex = { 0: 1, 2: 3, 4: 5 }[legendItem.datasetIndex];
+                const pairedIndex = { 0: 1, 2: 3, 4: 5, 7: 8 }[legendItem.datasetIndex];
                 if (pairedIndex !== undefined) {
                   const hidden = !chart.getDatasetMeta(legendItem.datasetIndex).hidden;
                   chart.getDatasetMeta(legendItem.datasetIndex).hidden = hidden;
