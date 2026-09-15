@@ -13,6 +13,8 @@ function syncInputsWithParams() {
 
   setInputValue('param-bess-initial-soc', state.params.bessInitialSocPercent);
 
+  setInputValue('param-load-power', state.params.loadPowerPercent);
+
   setInputValue('param-grid-contract', state.params.gridContractKw);
 
   setInputValue('param-strategy', state.params.strategy);
@@ -32,6 +34,7 @@ function bindInputListeners() {
     { id: 'param-bess-power-price', key: 'bessPowerPriceEurPerKw', unit: '€/kW', isFloat: false },
     { id: 'param-bess-eff', key: 'bessEfficiencyPercent', unit: '%', isFloat: false },
     { id: 'param-bess-initial-soc', key: 'bessInitialSocPercent', unit: '%', isFloat: false },
+    { id: 'param-load-power', key: 'loadPowerPercent', unit: '%', isFloat: false },
     { id: 'param-grid-contract', key: 'gridContractKw', unit: 'kW', isFloat: false },
     { id: 'param-grid-export', key: 'gridMaxExportKw', unit: 'kW', isFloat: false },
   ];

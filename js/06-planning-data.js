@@ -4,6 +4,7 @@ function getPlanningHourlyData() {
   const gridPrice1m = resampleSeriesTo1Minute(state.files.GRID_forecast, '1h');
 
   const pvScale = state.params.pvCapacityKwp >= 0 ? state.params.pvCapacityKwp / 250 : 1;
+  const loadScale = (state.params.loadPowerPercent || 0) / 100;
   const contractLimit = Math.max(0, state.params.gridContractKw);
   // gridMaxExportKw est stocké signé (négatif = injection) : on en prend la magnitude.
   const exportLimit = Math.max(0, Math.abs(state.params.gridMaxExportKw) || contractLimit);
@@ -54,7 +55,7 @@ function getPlanningHourlyData() {
     for (let m = 0; m < 60; m++) {
       const idx = h * 60 + m;
       sumPv += (pvForecast1m[idx] || 0) * pvScale;
-      sumLoad += loadForecast1m[idx] || 0;
+      sumLoad += (loadForecast1m[idx] || 0) * loadScale;
       sumPrice += gridPrice1m[idx] || 70;
     }
     const pvH = Math.max(0, sumPv / 60);

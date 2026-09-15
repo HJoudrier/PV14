@@ -2,6 +2,7 @@ function applyProfileSelfConsumption() {
   const pvForecast1m = resampleSeriesTo1Minute(state.files.PV_forecast, '1h');
   const loadForecast1m = resampleSeriesTo1Minute(state.files.LOAD_forecast, '5min');
   const pvScale = state.params.pvCapacityKwp >= 0 ? state.params.pvCapacityKwp / 250 : 1;
+  const loadScale = (state.params.loadPowerPercent || 0) / 100;
   const maxKw = state.params.bessPowerKw;
 
   for (let h = 0; h < 24; h++) {
@@ -10,7 +11,7 @@ function applyProfileSelfConsumption() {
     for (let m = 0; m < 60; m++) {
       const idx = h * 60 + m;
       sumPv += (pvForecast1m[idx] || 0) * pvScale;
-      sumLoad += loadForecast1m[idx] || 0;
+      sumLoad += (loadForecast1m[idx] || 0) * loadScale;
     }
     const pvH = sumPv / 60;
     const loadH = sumLoad / 60;

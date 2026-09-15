@@ -92,6 +92,7 @@ const DEFAULT_PARAMS = {
   bessMinSocPercent: 5,
   bessMaxSocPercent: 95,
   bessInitialSocPercent: 50,
+  loadPowerPercent: 70, // multiplicateur (%) appliqué à la courbe de charge normalisée
   gridContractKw: 40,
   gridMaxExportKw: 40,
   gridMaxImportKw: 40,

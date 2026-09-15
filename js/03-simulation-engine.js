@@ -9,6 +9,9 @@ function runMicrogridSimulation(files, params) {
 
   // Scaling factor for PV peak if user adjusted dimensioning slider
   const pvScale = params.pvCapacityKwp >= 0 ? params.pvCapacityKwp / 250 : 1;
+  // Courbe de charge normalisée (échantillon = référence) puis multipliée par le
+  // paramètre "LOAD : Puissance" (%) du Dimensionnement.
+  const loadScale = (params.loadPowerPercent || 0) / 100;
 
   // Battery energy & limits
   const maxEnergy = (params.bessCapacityKwh * params.bessMaxSocPercent) / 100;
@@ -49,8 +52,8 @@ function runMicrogridSimulation(files, params) {
     const pvM = Math.max(0, (pvMeasure1m[m] || 0) * pvScale);
     const pvDelta = pvM - pvF; // >0: overperformance, <0: underperformance
 
-    const loadF = Math.max(0, loadForecast1m[m] || 0);
-    const loadM = Math.max(0, loadMeasure1m[m] || 0);
+    const loadF = Math.max(0, (loadForecast1m[m] || 0) * loadScale);
+    const loadM = Math.max(0, (loadMeasure1m[m] || 0) * loadScale);
     const loadDelta = loadM - loadF; // >0: overconsumption
 
     const priceMwh = gridPrice1m[m] || 70;
