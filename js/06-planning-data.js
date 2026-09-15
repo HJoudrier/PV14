@@ -115,8 +115,8 @@ function getPlanningHourlyData() {
     }
     socCurveUnlimited.push(Number(currentSocUnlimited.toFixed(1)));
 
-    // 3. Écrêtage PV : bilan réseau si le PV n'est pas écrêté (référence "demandé"),
-    // puis réduction du PV si le surplus dépasse la limite d'injection (si autorisé).
+    // 3. Écrêtage PV : bilan réseau brut (PV non écrêté), utilisé uniquement pour
+    // détecter un dépassement de la limite d'injection et déclencher l'écrêtage.
     const rawNetDemand = loadH - pvH - pEff;
 
     let pvActual = pvH;
@@ -160,7 +160,9 @@ function getPlanningHourlyData() {
     }
 
     gridPlan.push(Number(pGrid.toFixed(1)));
-    gridPlanRaw.push(Number(rawNetDemand.toFixed(1)));
+    // "Réseau demandé" : bilan après écrêtage PV (le surplus écrêté n'est plus une
+    // puissance à injecter) mais avant la limite de soutirage, qui reste un manque réel.
+    gridPlanRaw.push(Number(netDemand.toFixed(1)));
     deficit.push(Number(pDeficit.toFixed(1)));
 
     // Coût réseau horaire au prix spot : import = coût, export = recette (même tarif ici).
