@@ -12,6 +12,8 @@ function runMicrogridSimulation(files, params) {
   // Courbe de charge normalisée (échantillon = référence) puis multipliée par le
   // paramètre "LOAD : Puissance" (%) du Dimensionnement.
   const loadScale = (params.loadPowerPercent || 0) / 100;
+  // gridMaxExportKw est stocké signé (négatif = injection) : on en prend la magnitude.
+  const exportLimitKw = Math.max(0, Math.abs(params.gridMaxExportKw) || params.gridContractKw);
 
   // Battery energy & limits
   const maxEnergy = (params.bessCapacityKwh * params.bessMaxSocPercent) / 100;
@@ -103,11 +105,11 @@ function runMicrogridSimulation(files, params) {
     let unmetLoadKw = 0;
 
     if (residual > 0) {
-      if (residual <= params.gridMaxExportKw) {
+      if (residual <= exportLimitKw) {
         gridExportKw = residual;
       } else {
-        gridExportKw = params.gridMaxExportKw;
-        curtailmentKw = residual - params.gridMaxExportKw;
+        gridExportKw = exportLimitKw;
+        curtailmentKw = residual - exportLimitKw;
       }
     } else if (residual < 0) {
       const deficit = -residual;
