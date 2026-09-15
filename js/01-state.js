@@ -97,6 +97,17 @@ const DEFAULT_PARAMS = {
   gridMaxImportKw: 40,
   feedInTariffEurMwh: 45,
   strategy: 'self_consumption', // 'self_consumption' | 'follow_forecast' | 'price_arbitrage' | 'peak_shaving'
+
+  // Budget limits (configurable via the AREA / CAPEX / OPEX detail modals)
+  areaLimitEnabled: true,
+  areaLimitM2: 400,
+  capexLimitEnabled: true,
+  capexLimitEur: 400000,
+  opexLimitEnabled: false,
+  opexLimitEurPerDay: 200,
+
+  // Assumed battery lifetime used to price cycling wear in the OPEX detail
+  bessCycleLifeCycles: 7000,
 };
 
 // Default 24h BESS schedule (kW)
@@ -121,6 +132,7 @@ const state = {
   selectedPlanningHour: 12,
   isDraggingPlanning: false,
   planningDebounceTimer: null,
+  openDetailModalType: null, // 'area' | 'capex' | 'opex' | null — not persisted
 };
 
 // LocalStorage Keys

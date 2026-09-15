@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/04-utilities-2.css" />
     <link rel="stylesheet" href="css/05-utilities-3.css" />
     <link rel="stylesheet" href="css/06-custom.css" />
+    <link rel="stylesheet" href="css/07-detail-modal.css" />
   </head>
   <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
     <!-- Header -->
@@ -74,12 +75,12 @@
           </div>
           
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span id="dimensioning-area-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white">
-              ▱ AREA : -- m²
-            </span>
-            <span id="dimensioning-capex-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white">
-              💰 CAPEX : -- €
-            </span>
+            <button type="button" id="btn-area-detail" class="metric-bubble-btn px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white" title="Voir le détail de la surface par actif">
+              <span id="dimensioning-area-badge">▱ AREA : -- m²</span>
+            </button>
+            <button type="button" id="btn-capex-detail" class="metric-bubble-btn px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white" title="Voir le détail du CAPEX par actif">
+              <span id="dimensioning-capex-badge">💰 CAPEX : -- €</span>
+            </button>
           </div>
         </div>
 
@@ -542,9 +543,12 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span id="planning-opex-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white">
-              💰 OPEX : -- €
+            <span id="planning-opex-limit-badge" class="px-2.5 py-1 rounded-lg font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200" hidden>
+              ⚠️ Limite d'OPEX atteinte : -- € max/jour
             </span>
+            <button type="button" id="btn-opex-detail" class="metric-bubble-btn px-2.5 py-1 rounded-lg font-mono font-semibold text-xs bg-slate-900 text-white" title="Voir le détail de l'OPEX par actif">
+              <span id="planning-opex-badge">💰 OPEX (jour) : -- €</span>
+            </button>
           </div>
 
         </div>
@@ -1064,6 +1068,17 @@
       </footer>
     </main>
 
+    <!-- Modale de détail AREA / CAPEX / OPEX (contenu généré par js/10c-detail-modals.js) -->
+    <div class="detail-modal-overlay" id="detail-modal" hidden>
+      <div class="detail-modal-box" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+        <div class="detail-modal-header">
+          <span class="detail-modal-title" id="detail-modal-title">Détail</span>
+          <button type="button" id="detail-modal-close" class="detail-modal-close-btn" aria-label="Fermer">✕</button>
+        </div>
+        <div class="detail-modal-body" id="detail-modal-body"></div>
+      </div>
+    </div>
+
     <script src="vendor/papaparse.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
     <!-- Code applicatif découpé en petits fichiers (<10 Ko chacun), chargés dans cet
@@ -1079,6 +1094,7 @@
     <script src="js/09-planning-chart-bess.js"></script>
     <script src="js/09b-planning-profiles.js"></script>
     <script src="js/10-planning-ui-files.js"></script>
+    <script src="js/10c-detail-modals.js"></script>
     <script src="js/11-params-init.js"></script>
   </body>
 </html>

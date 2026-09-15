@@ -173,8 +173,38 @@ function computeCapex(params) {
   return { pv, bessCapacity, bessPower, total: pv + bessCapacity + bessPower };
 }
 
+/**
+ * OPEX is not a fixed operating cost: it reflects the daily economic outcome
+ * of the microgrid's arbitrage with the grid (purchases vs. sales) plus the
+ * wear cost of cycling the battery, priced against an assumed cycle life.
+ */
+function computeOpexBreakdown() {
+  const kpis = state.simulationResult ? state.simulationResult.kpis : null;
+  const capex = computeCapex(state.params);
+  const cycleLife = state.params.bessCycleLifeCycles > 0 ? state.params.bessCycleLifeCycles : 7000;
+
+  const gridPurchaseCostEur = kpis ? kpis.totalCostEur : 0;
+  const gridSaleRevenueEur = kpis ? kpis.totalRevenueEur : 0;
+  const gridNetEur = kpis ? kpis.netBillEur : 0;
+
+  const cyclesPerDay = kpis ? kpis.bessCycles : 0;
+  const costPerCycleEur = capex.bessCapacity / cycleLife;
+  const bessCyclingCostEur = cyclesPerDay * costPerCycleEur;
+
+  return {
+    gridPurchaseCostEur,
+    gridSaleRevenueEur,
+    gridNetEur,
+    cycleLife,
+    cyclesPerDay,
+    costPerCycleEur,
+    bessCyclingCostEur,
+    total: gridNetEur + bessCyclingCostEur,
+  };
+}
+
 function formatEur(value) {
-  return `${Math.round(value).toLocaleString('fr-FR')} €`;
+  return `${(Math.round(value) + 0).toLocaleString('fr-FR')} €`;
 }
 
 function formatArea(value) {
@@ -184,12 +214,12 @@ function formatArea(value) {
 function updateAreaBadge() {
   const area = computeArea(state.params);
   setText('dimensioning-area-badge', `▱ AREA : ${formatArea(area.total)}`);
-  
+
   const defBadge = document.getElementById('dimensioning-area-limit-badge');
   if (defBadge) {
-    if (area.total > 400) {
+    if (state.params.areaLimitEnabled && area.total > state.params.areaLimitM2) {
       defBadge.hidden = false;
-      defBadge.textContent = `⚠️ Surface : 400 m² de PV max`;
+      defBadge.textContent = `⚠️ Surface : ${formatArea(state.params.areaLimitM2)} max`;
     } else {
       defBadge.hidden = true;
     }
@@ -199,14 +229,29 @@ function updateAreaBadge() {
 function updateCapexBadge() {
   const capex = computeCapex(state.params);
   setText('dimensioning-capex-badge', `💰 CAPEX : ${formatEur(capex.total)}`);
-  
+
   const defBadge = document.getElementById('dimensioning-capex-limit-badge');
   if (defBadge) {
-    if (capex.total > 400000) {
+    if (state.params.capexLimitEnabled && capex.total > state.params.capexLimitEur) {
       defBadge.hidden = false;
-      defBadge.textContent = `️⚠️ CAPEX : 400 000 € max`;
+      defBadge.textContent = `️⚠️ CAPEX : ${formatEur(state.params.capexLimitEur)} max`;
     } else {
       defBadge.hidden = true;
+    }
+  }
+}
+
+function updateOpexBadge() {
+  const opex = computeOpexBreakdown();
+  setText('planning-opex-badge', `💰 OPEX (jour) : ${formatEur(opex.total)}`);
+
+  const limitBadge = document.getElementById('planning-opex-limit-badge');
+  if (limitBadge) {
+    if (state.params.opexLimitEnabled && opex.total > state.params.opexLimitEurPerDay) {
+      limitBadge.hidden = false;
+      limitBadge.textContent = `⚠️ OPEX : ${formatEur(state.params.opexLimitEurPerDay)} max/jour`;
+    } else {
+      limitBadge.hidden = true;
     }
   }
 }
@@ -228,6 +273,8 @@ function recomputeAndRender() {
   renderFilesTable();
   updateCapexBadge();
   updateAreaBadge();
+  updateOpexBadge();
+  refreshOpenDetailModal();
 }
 
 /**
@@ -251,6 +298,7 @@ function init() {
   syncInputsWithParams();
   bindInputListeners();
   bindPlanningEventListeners();
+  bindDetailModalListeners();
   recomputeAndRender();
 }
 
