@@ -209,37 +209,40 @@ function bindCapexLimitHandlers() {
 }
 
 /**
- * OPEX — daily grid arbitrage result + battery cycling wear cost
+ * OPEX (Planification) — résultat économique journalier du plan : arbitrage réseau
+ * (achats/ventes au prix spot, tel que dispatché par le plan BESS) + usure batterie
+ * liée au cyclage effectif du plan.
  */
 function renderOpexPlanDetailHtml() {
   const p = state.params;
-  const opex = computeOpexBreakdown();
+  const opex = getPlanningHourlyData();
   const limitOn = p.opexLimitEnabled;
   const limit = p.opexLimitEurPerDay;
 
   return `
     <p class="detail-note">
-      L'OPEX n'est pas un coût fixe : il traduit le résultat économique journalier de l'arbitrage
-      avec le réseau (achats vs. ventes) et le coût d'usure de la batterie lié à son cyclage.
+      L'OPEX n'est pas un coût fixe : il traduit le résultat économique journalier du plan
+      (achats/ventes réseau au prix spot, tels que dispatchés par le plan BESS) et le coût
+      d'usure de la batterie lié à son cyclage.
     </p>
     <table class="detail-table">
       <thead>
         <tr><th>Poste</th><th>Actif</th><th class="num">Montant</th></tr>
       </thead>
       <tbody>
-        <tr><td>Achats réseau (import)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.gridPurchaseCostEur)}</td></tr>
-        <tr><td>Ventes réseau (injection)</td><td>🌐 GRID</td><td class="num">${formatEur(-opex.gridSaleRevenueEur)}</td></tr>
-        <tr><td>Solde net réseau (arbitrage)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.gridNetEur)}</td></tr>
-        <tr><td>Usure batterie (cyclage)</td><td>🔋 BESS</td><td class="num">${formatEur(opex.bessCyclingCostEur)}</td></tr>
+        <tr><td>Achats réseau (import)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.opexPlanGridImportEur)}</td></tr>
+        <tr><td>Ventes réseau (injection)</td><td>🌐 GRID</td><td class="num">${formatEur(-opex.opexPlanGridExportEur)}</td></tr>
+        <tr><td>Solde net réseau (arbitrage)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.opexPlanGridEur)}</td></tr>
+        <tr><td>Usure batterie (cyclage)</td><td>🔋 BESS</td><td class="num">${formatEur(opex.opexPlanBessCyclingEur)}</td></tr>
       </tbody>
       <tfoot>
-        <tr><td colspan="2">Total OPEX (jour simulé)</td><td class="num">${formatEur(opex.total)}</td></tr>
+        <tr><td colspan="2">Total OPEX (jour planifié)</td><td class="num">${formatEur(opex.opexPlan)}</td></tr>
       </tfoot>
     </table>
     <p class="detail-note">
-      Cyclage batterie : ${opex.cyclesPerDay.toFixed(2)} cycles/jour × ${formatEur(opex.costPerCycleEur)}/cycle
+      Cyclage batterie : ${opex.opexPlanCyclesPerDay.toFixed(2)} cycles/jour × ${formatEur(opex.opexPlanCostPerCycleEur)}/cycle
       (CAPEX batterie ÷ durée de vie de
-      <input type="number" min="1" step="500" id="modal-opex-cycle-life" value="${opex.cycleLife}" class="inline-number" />
+      <input type="number" min="1" step="500" id="modal-opex-cycle-life" value="${opex.opexPlanCycleLife}" class="inline-number" />
       cycles).
     </p>
 
@@ -254,55 +257,7 @@ function renderOpexPlanDetailHtml() {
         <input type="number" min="0" step="10" id="modal-opex-limit-value" value="${limit}" ${limitOn ? '' : 'disabled'} />
         <span>€ / jour</span>
       </label>
-      <p class="limit-status" id="modal-opex-status">${limitStatusText(opex.total, limit, limitOn, formatEur)}</p>
-    </div>
-  `;
-}
-
-function renderOpexSimDetailHtml() {
-  const p = state.params;
-  const opex = computeOpexBreakdown();
-  const limitOn = p.opexLimitEnabled;
-  const limit = p.opexLimitEurPerDay;
-
-  return `
-    <p class="detail-note">
-      L'OPEX n'est pas un coût fixe : il traduit le résultat économique journalier de l'arbitrage
-      avec le réseau (achats vs. ventes) et le coût d'usure de la batterie lié à son cyclage.
-    </p>
-    <table class="detail-table">
-      <thead>
-        <tr><th>Poste</th><th>Actif</th><th class="num">Montant</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Achats réseau (import)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.gridPurchaseCostEur)}</td></tr>
-        <tr><td>Ventes réseau (injection)</td><td>🌐 GRID</td><td class="num">${formatEur(-opex.gridSaleRevenueEur)}</td></tr>
-        <tr><td>Solde net réseau (arbitrage)</td><td>🌐 GRID</td><td class="num">${formatEur(opex.gridNetEur)}</td></tr>
-        <tr><td>Usure batterie (cyclage)</td><td>🔋 BESS</td><td class="num">${formatEur(opex.bessCyclingCostEur)}</td></tr>
-      </tbody>
-      <tfoot>
-        <tr><td colspan="2">Total OPEX (jour simulé)</td><td class="num">${formatEur(opex.total)}</td></tr>
-      </tfoot>
-    </table>
-    <p class="detail-note">
-      Cyclage batterie : ${opex.cyclesPerDay.toFixed(2)} cycles/jour × ${formatEur(opex.costPerCycleEur)}/cycle
-      (CAPEX batterie ÷ durée de vie de
-      <input type="number" min="1" step="500" id="modal-opex-cycle-life" value="${opex.cycleLife}" class="inline-number" />
-      cycles).
-    </p>
-
-    <div class="limit-config">
-      <div class="limit-config-title">Limite d'OPEX</div>
-      <label class="limit-config-row">
-        <input type="checkbox" id="modal-opex-limit-toggle" ${limitOn ? 'checked' : ''} />
-        Activer une limite d'OPEX journalier
-      </label>
-      <label class="limit-config-row">
-        <span>OPEX maximal</span>
-        <input type="number" min="0" step="10" id="modal-opex-limit-value" value="${limit}" ${limitOn ? '' : 'disabled'} />
-        <span>€ / jour</span>
-      </label>
-      <p class="limit-status" id="modal-opex-status">${limitStatusText(opex.total, limit, limitOn, formatEur)}</p>
+      <p class="limit-status" id="modal-opex-status">${limitStatusText(opex.opexPlan, limit, limitOn, formatEur)}</p>
     </div>
   `;
 }
@@ -314,8 +269,7 @@ function bindOpexHandlers() {
       const v = Math.max(1, parseInt(e.target.value, 10) || 7000);
       state.params.bessCycleLifeCycles = v;
       saveStateToLocalStorage();
-      updateOpexBadge();
-      renderDetailModalContent('opexPlan');
+      renderPlanningCharts();
     });
   }
 
@@ -324,9 +278,9 @@ function bindOpexHandlers() {
   const status = document.getElementById('modal-opex-status');
 
   const refreshStatus = () => {
-    const opex = computeOpexBreakdown();
+    const opex = getPlanningHourlyData();
     if (status) {
-      status.textContent = limitStatusText(opex.total, state.params.opexLimitEurPerDay, state.params.opexLimitEnabled, formatEur);
+      status.textContent = limitStatusText(opex.opexPlan, state.params.opexLimitEurPerDay, state.params.opexLimitEnabled, formatEur);
     }
     if (value) value.disabled = !state.params.opexLimitEnabled;
   };
@@ -335,7 +289,7 @@ function bindOpexHandlers() {
     toggle.addEventListener('change', (e) => {
       state.params.opexLimitEnabled = e.target.checked;
       saveStateToLocalStorage();
-      updateOpexBadge();
+      updatePlanningControllerUI(getPlanningHourlyData());
       refreshStatus();
     });
   }
@@ -344,7 +298,7 @@ function bindOpexHandlers() {
       const v = Math.max(0, parseFloat(e.target.value) || 0);
       state.params.opexLimitEurPerDay = v;
       saveStateToLocalStorage();
-      updateOpexBadge();
+      updatePlanningControllerUI(getPlanningHourlyData());
       refreshStatus();
     };
     value.addEventListener('input', commit);

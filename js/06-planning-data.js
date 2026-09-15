@@ -33,7 +33,10 @@ function getPlanningHourlyData() {
   let currentSoc = state.params.bessInitialSocPercent || 45;
   let currentSocUnlimited = currentSoc;
   let totalDeficitKwh = 0;
-  let opexPlan = 0;
+  let opexPlanGridImportEur = 0;
+  let opexPlanGridExportEur = 0;
+  let totalBessChargeKwh = 0;
+  let totalBessDischargeKwh = 0;
 
   for (let h = 0; h < 24; h++) {
     const hh = String(h).padStart(2, '0');
@@ -84,6 +87,13 @@ function getPlanningHourlyData() {
       pEff = 0;
     }
 
+    // Énergie physiquement chargée/déchargée pendant ce créneau (1h), pour le cyclage.
+    if (pEff > 0) {
+      totalBessDischargeKwh += pEff;
+    } else if (pEff < 0) {
+      totalBessChargeKwh += Math.abs(pEff);
+    }
+
     bessPlan.push(Number(pEff.toFixed(1)));
     bessPlanReq.push(Number(pReq.toFixed(1)));
     bessPowerLimited.push(powerLimited);
@@ -131,9 +141,26 @@ function getPlanningHourlyData() {
     gridPlan.push(Number(pGrid.toFixed(1)));
     gridPlanRaw.push(Number(netDemand.toFixed(1)));
     deficit.push(Number(pDeficit.toFixed(1)));
-	
-	opexPlan += pGrid * priceH / 1000;
+
+    // Coût réseau horaire au prix spot : import = coût, export = recette (même tarif ici).
+    if (pGrid > 0) {
+      opexPlanGridImportEur += (pGrid * priceH) / 1000;
+    } else if (pGrid < 0) {
+      opexPlanGridExportEur += (-pGrid * priceH) / 1000;
+    }
   }
+
+  // Cyclage batterie : coût d'usure = cycles équivalents réalisés par le plan ×
+  // (CAPEX de la capacité batterie ÷ durée de vie assumée en cycles).
+  const realCapacityKwh = Math.max(0, state.params.bessCapacityKwh || 0);
+  const cycleLife = state.params.bessCycleLifeCycles > 0 ? state.params.bessCycleLifeCycles : 7000;
+  const bessCapacityCapexEur = realCapacityKwh * (state.params.bessCapacityPriceEurPerKwh || 0);
+  const opexPlanCostPerCycleEur = bessCapacityCapexEur / cycleLife;
+  const opexPlanCyclesPerDay = realCapacityKwh > 0 ? (totalBessChargeKwh + totalBessDischargeKwh) / (2 * realCapacityKwh) : 0;
+  const opexPlanBessCyclingEur = opexPlanCyclesPerDay * opexPlanCostPerCycleEur;
+
+  const opexPlanGridEur = opexPlanGridImportEur - opexPlanGridExportEur;
+  const opexPlan = opexPlanGridEur + opexPlanBessCyclingEur;
 
   return {
     hours,
@@ -159,7 +186,14 @@ function getPlanningHourlyData() {
     socMaxLimit: maxSoc,
     totalDeficitKwh: Number(totalDeficitKwh.toFixed(1)),
     finalSoc: Number(currentSoc.toFixed(1)),
-	opexPlan,
+    opexPlan,
+    opexPlanGridEur,
+    opexPlanGridImportEur,
+    opexPlanGridExportEur,
+    opexPlanCyclesPerDay,
+    opexPlanCycleLife: cycleLife,
+    opexPlanCostPerCycleEur,
+    opexPlanBessCyclingEur,
   };
 }
 

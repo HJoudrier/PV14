@@ -174,36 +174,6 @@ function computeCapex(params) {
 }
 
 
-/**
- * OPEX is not a fixed operating cost: it reflects the daily economic outcome
- * of the microgrid's arbitrage with the grid (purchases vs. sales) plus the
- * wear cost of cycling the battery, priced against an assumed cycle life.
- */
-function computeOpexBreakdown() {
-  const kpis = state.simulationResult ? state.simulationResult.kpis : null;
-  const capex = computeCapex(state.params);
-  const cycleLife = state.params.bessCycleLifeCycles > 0 ? state.params.bessCycleLifeCycles : 7000;
-
-  const gridPurchaseCostEur = kpis ? kpis.totalCostEur : 0;
-  const gridSaleRevenueEur = kpis ? kpis.totalRevenueEur : 0;
-  const gridNetEur = kpis ? kpis.netBillEur : 0;
-
-  const cyclesPerDay = kpis ? kpis.bessCycles : 0;
-  const costPerCycleEur = capex.bessCapacity / cycleLife;
-  const bessCyclingCostEur = cyclesPerDay * costPerCycleEur;
-
-  return {
-    gridPurchaseCostEur,
-    gridSaleRevenueEur,
-    gridNetEur,
-    cycleLife,
-    cyclesPerDay,
-    costPerCycleEur,
-    bessCyclingCostEur,
-    total: gridNetEur + bessCyclingCostEur,
-  };
-}
-
 function formatEur(value) {
   return `${(Math.round(value) + 0).toLocaleString('fr-FR')} €`;
 }
@@ -242,21 +212,6 @@ function updateCapexBadge() {
   }
 }
 
-function updateOpexBadge() {
-  const opex = computeOpex();
-  setText('simulation-opex-badge', `💰 OPEX (jour) : ${formatEur(opex.total)}`);
-
-  const limitBadge = document.getElementById('simulation-opex-limit-badge');
-  if (limitBadge) {
-    if (state.params.opexLimitEnabled && opex.total > state.params.opexLimitEurPerDay) {
-      limitBadge.hidden = false;
-      limitBadge.textContent = `⚠️ OPEX : ${formatEur(state.params.opexLimitEurPerDay)} max/jour`;
-    } else {
-      limitBadge.hidden = true;
-    }
-  }
-}
-
 function updateGridPowerLimits() {
   const grid = state.params.gridContractKw;
 
@@ -274,8 +229,6 @@ function recomputeAndRender() {
   renderFilesTable();
   updateCapexBadge();
   updateAreaBadge();
-//  updateOpexBadge();
-  refreshOpenDetailModal();
 }
 
 /**

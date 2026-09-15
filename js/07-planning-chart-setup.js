@@ -65,6 +65,8 @@ function renderPlanningCharts() {
 
   renderPowerChart(planData, hoursExt);
   renderBessChart(planData, hoursExt);
+
+  refreshOpenDetailModal();
 }
 
 // 1. Chart 1: Plan de production / consommation (Courbe 1)
