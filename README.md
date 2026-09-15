@@ -23,6 +23,17 @@ python3 -m http.server 8000
 
 then visit `http://localhost:8000/`.
 
+## Sample datasets (data/)
+
+[`data/`](data) holds ready-to-import CSV scenarios: 3 PV days (clear summer,
+foggy winter, cloudy), 6 load profiles (residential, industrial, eco-park,
+office, EV charging station, mixed district) and 3 grid price contexts (tense
+winter spot, summer spot with negative midday prices, peak/off-peak tariff).
+Every PV and load scenario comes as a **pair**: an hourly forecast and a
+1-minute measured series that deliberately differs from it. See
+[`data/README.md`](data/README.md) for the full description and
+`python3 data/tools/generate_datasets.py` to regenerate them.
+
 ## Code layout (js/)
 
 The application code lives in [`js/`](js) split into small classic
