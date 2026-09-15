@@ -5,15 +5,19 @@ function getPlanningHourlyData() {
 
   const pvScale = state.params.pvCapacityKwp >= 0 ? state.params.pvCapacityKwp / 250 : 1;
   const contractLimit = Math.max(0, state.params.gridContractKw);
-  const exportLimit = Math.max(0, state.params.gridMaxExportKw || contractLimit);
+  // gridMaxExportKw est stocké signé (négatif = injection) : on en prend la magnitude.
+  const exportLimit = Math.max(0, Math.abs(state.params.gridMaxExportKw) || contractLimit);
+  const allowPvCurtailment = state.params.pvCurtailmentAllowed !== false;
   const bessPowerMax = Math.max(0, state.params.bessPowerKw);
   const capacityKwh = Math.max(1, state.params.bessCapacityKwh || 400);
   const eff = Math.sqrt((state.params.bessEfficiencyPercent || 92) / 100);
   const minSoc = state.params.bessMinSocPercent;
   const maxSoc = state.params.bessMaxSocPercent;
-  
+
   const hours = [];
   const pvPlan = [];
+  const pvPlanActual = [];
+  const pvCurtailed = [];
   const loadPlan = [];
   const loadCovered = [];
   const gridPlan = [];
@@ -33,6 +37,7 @@ function getPlanningHourlyData() {
   let currentSoc = state.params.bessInitialSocPercent || 45;
   let currentSocUnlimited = currentSoc;
   let totalDeficitKwh = 0;
+  let totalPvCurtailedKwh = 0;
   let opexPlanGridImportEur = 0;
   let opexPlanGridExportEur = 0;
   let totalBessChargeKwh = 0;
@@ -61,7 +66,7 @@ function getPlanningHourlyData() {
     gridPrice.push(Number(priceH.toFixed(1)));
     gridContractLine.push(contractLimit);
     gridImportLimitLine.push(+contractLimit);
-    gridExportLimitLine.push(-contractLimit);
+    gridExportLimitLine.push(-exportLimit);
 
     // 2. BESS command evaluation & physical constraints
     const pReq = state.planningBess[h] !== undefined ? state.planningBess[h] : 0;
@@ -109,9 +114,24 @@ function getPlanningHourlyData() {
     }
     socCurveUnlimited.push(Number(currentSocUnlimited.toFixed(1)));
 
-    // 3. Electrical balance: PV + BESS + GRID = LOAD
-    // Net demand from grid before limits:
-    const netDemand = loadH - pvH - pEff;
+    // 3. Écrêtage PV : bilan réseau si le PV n'est pas écrêté (référence "demandé"),
+    // puis réduction du PV si le surplus dépasse la limite d'injection (si autorisé).
+    const rawNetDemand = loadH - pvH - pEff;
+
+    let pvActual = pvH;
+    let curtailedKw = 0;
+    if (allowPvCurtailment && rawNetDemand < -exportLimit) {
+      // Puissance PV exacte qui sature l'export à sa limite, sans la dépasser.
+      const pvNeeded = loadH - pEff + exportLimit;
+      pvActual = Math.max(0, Math.min(pvH, pvNeeded));
+      curtailedKw = Math.max(0, pvH - pvActual);
+    }
+    totalPvCurtailedKwh += curtailedKw;
+    pvPlanActual.push(Number(pvActual.toFixed(1)));
+    pvCurtailed.push(Number(curtailedKw.toFixed(1)));
+
+    // 4. Electrical balance: PV (écrêté) + BESS + GRID = LOAD
+    const netDemand = loadH - pvActual - pEff;
 
     let pGrid = 0;
     let pDeficit = 0;
@@ -132,14 +152,14 @@ function getPlanningHourlyData() {
         loadCovered.push(Number(served.toFixed(1)));
       }
     } else {
-      // Net export surplus
-      pGrid = Math.max(netDemand, -contractLimit);
+      // Net export surplus (déjà borné par l'écrêtage PV ci-dessus le cas échéant)
+      pGrid = Math.max(netDemand, -exportLimit);
       pDeficit = 0;
       loadCovered.push(Number(loadH.toFixed(1)));
     }
 
     gridPlan.push(Number(pGrid.toFixed(1)));
-    gridPlanRaw.push(Number(netDemand.toFixed(1)));
+    gridPlanRaw.push(Number(rawNetDemand.toFixed(1)));
     deficit.push(Number(pDeficit.toFixed(1)));
 
     // Coût réseau horaire au prix spot : import = coût, export = recette (même tarif ici).
@@ -165,6 +185,9 @@ function getPlanningHourlyData() {
   return {
     hours,
     pvPlan,
+    pvPlanActual,
+    pvCurtailed,
+    totalPvCurtailedKwh: Number(totalPvCurtailedKwh.toFixed(1)),
     loadPlan,
     loadCovered,
     gridPlan,

@@ -97,6 +97,7 @@ const DEFAULT_PARAMS = {
   gridMaxImportKw: 40,
   feedInTariffEurMwh: 45,
   strategy: 'self_consumption', // 'self_consumption' | 'follow_forecast' | 'price_arbitrage' | 'peak_shaving'
+  pvCurtailmentAllowed: true, // autorise l'écrêtage PV pour respecter la limite d'injection réseau
 
   // Budget limits (configurable via the AREA / CAPEX / OPEX detail modals)
   areaLimitEnabled: true,

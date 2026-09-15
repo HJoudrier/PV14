@@ -58,6 +58,16 @@ function renderPlanningCharts() {
     }
   }
 
+  const curtailBadge = document.getElementById('planning-curtailment-badge');
+  if (curtailBadge) {
+    if (planData.totalPvCurtailedKwh > 0.1) {
+      curtailBadge.hidden = false;
+      curtailBadge.textContent = `✂️ Écrêtage PV : ${planData.totalPvCurtailedKwh} kWh écrêtés`;
+    } else {
+      curtailBadge.hidden = true;
+    }
+  }
+
   setText('planning-soc-end-badge', `🔋 SoC fin : ${planData.finalSoc}%`);
 
   // Update Controller UI for selected hour

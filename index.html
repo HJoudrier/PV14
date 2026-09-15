@@ -556,7 +556,18 @@
         <div class="p-4 space-y-6">
           <!-- COURBE 1 : Plan de production / consommation -->
           <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs" id="panel-planning-chart1">
-		  
+
+            <!-- Barre d'options Courbe 1 -->
+            <div class="px-4 py-2 bg-slate-100/70 border-b border-slate-200 flex flex-wrap items-center gap-3 text-xs">
+              <label class="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-slate-700">
+                <input type="checkbox" id="param-pv-curtailment-allowed" checked />
+                ☀️ Autoriser l'écrêtage PV (limite d'injection)
+              </label>
+              <span id="planning-curtailment-badge" class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-amber-50 text-amber-800 border border-amber-200" hidden>
+                ✂️ Écrêtage PV : -- kWh écrêtés
+              </span>
+            </div>
+
 			<!-- Canvas Courbe 1 -->
             <div class="p-3.5 h-[340px] relative">
               <canvas id="chart-planning-power"></canvas>

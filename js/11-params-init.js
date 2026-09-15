@@ -16,6 +16,9 @@ function syncInputsWithParams() {
   setInputValue('param-grid-contract', state.params.gridContractKw);
 
   setInputValue('param-strategy', state.params.strategy);
+
+  const curtailCheckbox = document.getElementById('param-pv-curtailment-allowed');
+  if (curtailCheckbox) curtailCheckbox.checked = state.params.pvCurtailmentAllowed !== false;
 }
 
 function bindInputListeners() {
@@ -73,6 +76,15 @@ function bindInputListeners() {
       state.params.strategy = e.target.value;
       saveStateToLocalStorage();
       recomputeAndRender();
+    });
+  }
+
+  const curtailCheckbox = document.getElementById('param-pv-curtailment-allowed');
+  if (curtailCheckbox) {
+    curtailCheckbox.addEventListener('change', (e) => {
+      state.params.pvCurtailmentAllowed = e.target.checked;
+      saveStateToLocalStorage();
+      renderPlanningCharts();
     });
   }
 

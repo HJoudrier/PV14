@@ -7,7 +7,8 @@ function renderPowerChart(planData, hoursExt) {
     const loadNeg = planData.loadPlan.map((v) => -v);
     const loadCoveredNeg = planData.loadCovered.map((v) => -v);
 
-    const pvVals = planData.pvPlan;
+    const pvForecastVals = planData.pvPlan;
+    const pvActualVals = planData.pvPlanActual;
     const loadCoveredNegVals = loadCoveredNeg;
     const loadNegVals = loadNeg;
     const gridVals = planData.gridPlan;
@@ -18,7 +19,7 @@ function renderPowerChart(planData, hoursExt) {
     const gridExportLimitVals = planData.gridExportLimitLine;
 
     const alignedScales = computeAlignedZeroScales(
-      [...pvVals, ...loadCoveredNegVals, ...loadNegVals, ...gridVals, ...gridRawVals, ...gridImportLimitVals, ...gridExportLimitVals],
+      [...pvForecastVals, ...pvActualVals, ...loadCoveredNegVals, ...loadNegVals, ...gridVals, ...gridRawVals, ...gridImportLimitVals, ...gridExportLimitVals],
       planData.gridPrice
     );
 
@@ -33,14 +34,15 @@ function renderPowerChart(planData, hoursExt) {
     if (state.charts.planningPower) {
       const chart = state.charts.planningPower;
       chart.data.labels = hoursExt;
-      chart.data.datasets[0].data = pvVals;
-      chart.data.datasets[1].data = loadCoveredNegVals;
-      chart.data.datasets[2].data = loadNegVals;
-      chart.data.datasets[3].data = gridVals;
-      chart.data.datasets[4].data = gridRawVals;
-      chart.data.datasets[5].data = priceBars;
-      chart.data.datasets[6].data = gridImportLimitVals;
-      chart.data.datasets[7].data = gridExportLimitVals;
+      chart.data.datasets[0].data = pvActualVals;
+      chart.data.datasets[1].data = pvForecastVals;
+      chart.data.datasets[2].data = loadCoveredNegVals;
+      chart.data.datasets[3].data = loadNegVals;
+      chart.data.datasets[4].data = gridVals;
+      chart.data.datasets[5].data = gridRawVals;
+      chart.data.datasets[6].data = priceBars;
+      chart.data.datasets[7].data = gridImportLimitVals;
+      chart.data.datasets[8].data = gridExportLimitVals;
       chart.options.scales.yPower.min = alignedScales.powerMin;
       chart.options.scales.yPower.max = alignedScales.powerMax;
       chart.options.scales.yPrice.min = alignedScales.priceMin;
@@ -53,12 +55,26 @@ function renderPowerChart(planData, hoursExt) {
           labels: hoursExt,
           datasets: [
             {
-              label: 'PV ',
-              data: pvVals,
+              // PV réellement injecté : le plan de production après écrêtage éventuel
+              // pour respecter la limite d'injection réseau.
+              label: 'PV plan (écrêté) ',
+              data: pvActualVals,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245, 158, 11, 0.16)',
               borderWidth: 2,
               fill: true,
+              tension: 0,
+              pointRadius: 0,
+              xAxisID: 'xBar',
+              yAxisID: 'yPower',
+            },
+            {
+              // Prévision de production PV brute, avant écrêtage.
+              label: 'PV prévision ',
+              data: pvForecastVals,
+              borderColor: '#f59e0b',
+              borderWidth: 2,
+              fill: false,
               tension: 0,
               pointRadius: 0,
               xAxisID: 'xBar',
@@ -172,24 +188,26 @@ function renderPowerChart(planData, hoursExt) {
                 boxWidth: 12,
                 font: { size: 11 },
                 color: '#475569',
-                // "Charge fournie"/"Charge demandée" (index 1/2) et "Réseau fourni"/
-                // "Réseau demandé" (index 3/4) sont chacune deux datasets distincts
-                // (aire remplie + contour) pour une seule et même grandeur physique :
-                // on les fusionne sous une unique légende "Charge (kW)" / "Réseau (kW)".
+                // "PV plan"/"PV prévision" (index 0/1), "Charge fournie"/"Charge demandée"
+                // (index 2/3) et "Réseau fourni"/"Réseau demandé" (index 4/5) sont chacune
+                // deux datasets distincts (aire remplie + contour) pour une seule et même
+                // grandeur physique : on les fusionne sous une unique légende "PV (kW)" /
+                // "Charge (kW)" / "Réseau (kW)".
                 generateLabels: (chart) => {
                   const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
                   return items
-                    .filter((item) => item.datasetIndex !== 2 && item.datasetIndex !== 4)
+                    .filter((item) => item.datasetIndex !== 1 && item.datasetIndex !== 3 && item.datasetIndex !== 5)
                     .map((item) => {
-                      if (item.datasetIndex === 1) item.text = 'Charge';
-                      if (item.datasetIndex === 3) item.text = 'Réseau';
+                      if (item.datasetIndex === 0) item.text = 'PV';
+                      if (item.datasetIndex === 2) item.text = 'Charge';
+                      if (item.datasetIndex === 4) item.text = 'Réseau';
                       return item;
                     });
                 },
               },
               onClick: (evt, legendItem, legend) => {
                 const chart = legend.chart;
-                const pairedIndex = { 1: 2, 3: 4 }[legendItem.datasetIndex];
+                const pairedIndex = { 0: 1, 2: 3, 4: 5 }[legendItem.datasetIndex];
                 if (pairedIndex !== undefined) {
                   const hidden = !chart.getDatasetMeta(legendItem.datasetIndex).hidden;
                   chart.getDatasetMeta(legendItem.datasetIndex).hidden = hidden;
